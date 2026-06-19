@@ -11,6 +11,49 @@ proposing or pasting any payment/tax changes.
 
 ---
 
+## 0. LOCKED DECISIONS (confirmed by Grant, 2026-06-19)
+
+These are settled. Do not reopen or contradict them in future blueprints.
+
+1. **Billing model = Model 1 (end-users pay through Flentix).** Everything runs
+   inside Flentix. The end-member pays via the Flentix checkout; the charge is a
+   **direct charge** on the operator's **connected** Stripe account
+   (`{ stripeAccount: connectAcct }`); the **operator is Merchant of Record**;
+   Medacrii's cut is split out instantly as a Stripe **application fee**.
+   ❌ The "wholesale-only — operators bill their own end-users in Nexudus / Cobot /
+   their own ERP" model is **REJECTED**. Operators use *only* Flentix; no external
+   billing system exists in the flow.
+
+2. **Fixed-fee mechanism — the `application_fee_amount` rule (stop getting this
+   wrong):** `application_fee_amount` is a **real field, but only for ONE-OFF
+   payments**, never for subscriptions.
+
+   | Charge type | Fixed-fee field | Where it goes |
+   |---|---|---|
+   | One-off (`mode: 'payment'`) | `application_fee_amount` ✅ | `payment_intent_data` |
+   | **Subscription (`mode: 'subscription'`)** | **only `application_fee_percent`** | `subscription_data` |
+
+   VO products are **subscriptions**, so a fixed €/tier fee is achieved as:
+   **(a)** first invoice → `application_fee_percent` computed to *equal* the fixed
+   fee; **(b)** every renewal → `application_fee_amount` set on the draft invoice
+   via an `invoice.created` webhook. **NEVER put `application_fee_amount` in
+   `subscription_data` — Stripe rejects it and checkout breaks.**
+
+3. **Two-stage Phone checkout is REMOVED.** The old €104 "workspace domiciliation"
+   line + separate €15/mo telecom subscription (on Medacrii's own account) was
+   pre-Stripe-Connect cruft and should never have shipped. The **Phone tier is now
+   a single €119 charge** on the operator's connected account, like every other
+   tier, routed through normal KYC. There is **no** regulatory requirement for
+   Medacrii to invoice the end-user — the operator is the retail biller (via the
+   platform), and the telecom reseller VAT chain (Zadarma → Medacrii → operator →
+   end-user) is satisfied by invoicing, not by a second charge.
+
+4. **Fee figures are PROVISIONAL.** €2 / €30 / €50 are placeholders. Grant is
+   researching the actual split (percentage vs fixed) before go-live — do not treat
+   them as final.
+
+---
+
 ## 1. Entities (do not conflate brand with legal entity)
 
 - **Medacrii Associates Ltd** — UK limited company. The current legal /
@@ -46,11 +89,12 @@ that is **incorrect** — the contracting entity is **Medacrii Associates Ltd**.
 These were asserted incorrectly in earlier generated blueprints. They are wrong:
 
 1. **`application_fee_amount` is NOT a valid field inside Checkout
-   `subscription_data`.** Checkout subscription mode accepts only
-   `application_fee_percent` there. A **fixed** per-invoice fee must be set as
-   `application_fee_amount` **on the invoice** (via an `invoice.created` webhook),
-   not on the subscription. (Pasting "swap application_fee_percent for
-   application_fee_amount in subscription_data" produces code Stripe rejects.)
+   `subscription_data`.** It is valid **only for one-off payments**
+   (`payment_intent_data`). Checkout subscription mode accepts only
+   `application_fee_percent` there; a **fixed** per-invoice fee must be set as
+   `application_fee_amount` **on the invoice** (via an `invoice.created` webhook).
+   See the locked rule and table in **§0.2**. (Pasting "swap application_fee_percent
+   for application_fee_amount in subscription_data" produces code Stripe rejects.)
 2. **`application_fee_percent` applies to the whole invoice total *including
    tax*** — not the net. To fee the net only with a percentage under a single
    uniform tax rate, divide by `(1 + rate)` (e.g. `÷1.21`); but the moment usage or
@@ -85,8 +129,9 @@ invoice, isolated from IVA and from future usage lines.
 - The webhook endpoint must **listen to events on connected accounts** and be
   subscribed to **`invoice.created`** (keep `invoice.payment_succeeded`).
 - Define the per-tier fee in **cents**, ideally in config/env or a DB column on
-  `virtual_hubs`/the tier, **not** hardcoded. Indicative (confirm): `starter: 200`,
-  `workspace: 3000`, `phone: 5000`.
+  `virtual_hubs`/the tier, **not** hardcoded. **PROVISIONAL placeholders** (Grant
+  researching final split — see §0.4): `starter: 200`, `workspace: 3000`,
+  `phone: 5000`.
 
 ### Change 1 — `create-virtual-office-checkout`
 - **Remove** `application_fee_percent: PLATFORM_FEE_PERCENT`.

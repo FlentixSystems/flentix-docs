@@ -1,6 +1,6 @@
 # 📜 FLENTIX CONSTITUTION v2.1
 
-**Version:** 2.1.0
+**Version:** 2.2.0
 **Last Updated:** 2026-06-19
 **Status:** Active — Proof of Concept / Sprint Mode (pace set by Grant)
 **Core Ecosystem Role:** Upstream Master Blueprint (Flentix Systems)
@@ -139,28 +139,35 @@ Tenants (e.g. TC Hub) override `--tenant-*` to theme their own deployment.
 
 ---
 
-## 4a. BILLING, FEES & TAX (CANONICAL — new in v2.1)
+## 4a. BILLING, FEES & TAX (CANONICAL)
 
-Detail in `NOTE_FOR_ARCHITECT.md`; tax positions for the accountant in
-`ACCOUNTANT_BRIEF.md`. Load-bearing facts:
+Detail in `NOTE_FOR_ARCHITECT.md` (§0 = locked decisions); tax positions for the
+accountant in `ACCOUNTANT_BRIEF.md`. Load-bearing facts:
 
-- **Two-party flow.** End-member → operator's **connected** Stripe account: net
-  price **+ 21% Spanish IVA** (the operator's to remit). Medacrii's cut is a
-  **fixed €/tier Stripe Connect application fee**, charged on the **NET**,
-  **never** on the IVA.
-- **Fixed per-tier fee** is set as `application_fee_amount` **on the invoice**
-  via an `invoice.created` webhook (Connect events;
-  `{ stripeAccount: event.account }`). **`application_fee_amount` is NOT valid in
-  Checkout `subscription_data`** — only `application_fee_percent` is, and that
-  percent applies to the **whole invoice total incl. tax**.
-- **The first Checkout subscription invoice finalises immediately** — handle it
-  separately from the renewal webhook.
+- **Model 1 — everything runs through Flentix.** The end-member pays via the
+  Flentix checkout; the charge is a **direct charge** on the operator's
+  **connected** account (`{ stripeAccount: connectAcct }`); the **operator is
+  Merchant of Record**; Medacrii's cut is split out instantly as a Stripe
+  **application fee**. The "wholesale-only / operators bill in their own ERP"
+  model is **rejected** — operators use *only* Flentix.
+- **Charge = net price + 21% Spanish IVA**, the operator's to remit. Medacrii's
+  fee is charged on the **NET**, never the IVA.
+- **Fixed per-tier fee mechanism.** `application_fee_amount` is valid **only for
+  one-off payments** (`payment_intent_data`), **never** in `subscription_data`.
+  VO products are subscriptions, so: first invoice → `application_fee_percent`
+  computed to equal the fixed fee; renewals → `application_fee_amount` on the
+  draft invoice via an `invoice.created` webhook (Connect events;
+  `{ stripeAccount: event.account }`).
+- **Fee figures are PROVISIONAL** (€2/€30/€50 placeholders; Grant researching).
+- **Phone tier = single €119 charge** on the connected account, like other tiers,
+  through normal KYC. The old two-stage (€104 + separate €15 telecom) is
+  **removed** — pre-Connect cruft.
 - **Reverse charge** on Medacrii's fee is handled by **Medacrii issuing its own
-  B2B reverse-charge invoices** to operators. **Stripe does NOT do this
-  automatically.**
+  B2B invoices** to operators. **Stripe does NOT do this automatically.**
 - **Usage pass-through (future):** metered, billed at 100% cost, no margin.
-- **Write `bookings` money columns from the *actual finalised invoice*** (in
-  `invoice.payment_succeeded`), never guessed at checkout time.
+- **Record settlement figures (base/tax/gross/fee) on `virtual_office_subscribers`**
+  (NOT `bookings` — VO is a recurring contract, not a transient booking), written
+  from the **actual finalised invoice** in `invoice.payment_succeeded`.
 
 ---
 
@@ -268,6 +275,11 @@ signatures, swap implementation for Twilio/FreeSWITCH later.
 - **New chat onboarding:** always paste this Constitution first.
 
 ### Changelog
+- **v2.2.0 (2026-06-19):** billing **Model 1 confirmed** (end-users pay through
+  Flentix; operator = MoR; wholesale-only model rejected); locked the
+  `application_fee_amount` rule (one-off only, never in `subscription_data`);
+  **two-stage Phone checkout removed** → single €119; settlement figures moved to
+  `virtual_office_subscribers`; fee figures marked provisional.
 - **v2.1.0 (2026-06-19):** entities corrected (Medacrii); AI workflow updated
   (Gemini architect, Claude engineering/tax); brand confirmed emerald-canonical
   with sandbox-drift note; Stripe fee/tax model added; removed false
