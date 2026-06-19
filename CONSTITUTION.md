@@ -1,0 +1,275 @@
+# 📜 FLENTIX CONSTITUTION v2.1
+
+**Version:** 2.1.0
+**Last Updated:** 2026-06-19
+**Status:** Active — Proof of Concept / Sprint Mode (pace set by Grant)
+**Core Ecosystem Role:** Upstream Master Blueprint (Flentix Systems)
+**Single source of truth.** Paste this as the first message in any new AI chat.
+
+> ### What changed in v2.1 (read this)
+> - **Entities corrected** — the legal/contracting entity is **Medacrii
+>   Associates Ltd** (UK); "Flentix" is the product brand, not yet a company
+>   (§0, §1).
+> - **AI workflow updated** to current reality — **Gemini is Architect**;
+>   **Claude does engineering/payments/tax/audit** (not "design only"). The old
+>   "DeepSeek architect / Gemini phasing out / Claude components-only" model is
+>   retired (§5).
+> - **Brand confirmed canonical = Emerald/charcoal/geometric.** The live sandbox
+>   has **drifted** to a sunset/glassmorphism look (the TC Hub tenant skin) and
+>   must be re-skinned to brand before any Flentix-branded launch (§2).
+> - **Stripe is now being wired up**, with a defined fee/tax model (§4a). See
+>   `NOTE_FOR_ARCHITECT.md` and `ACCOUNTANT_BRIEF.md`.
+> - Removed the false claim that "Stripe handles reverse-charge VAT
+>   automatically" — it does not (§4a).
+
+---
+
+## 0. ENTITIES (brand vs legal entity — do not conflate)
+
+| Name | What it is |
+|---|---|
+| **Medacrii Associates Ltd** | **UK limited company.** The current legal, contracting and **invoicing** entity, and the Stripe **platform** account holder. Issues the platform/PBX fee invoices to operators. |
+| **Flentix (Systems)** | The **product/system brand**. Will become its own legal entity **after** PoC; **jurisdiction TBD**. Not a legal entity today. Where older copy treats "Flentix Systems" as the company, read **Medacrii Associates Ltd**. |
+| **Operators ("hubs")** | Medacrii's clients — VAT-registered Spanish co-working / virtual-office businesses (e.g. TC Hub). Each has its own Stripe **connected** account. |
+| **End-members** | The operators' own customers. |
+
+---
+
+## 1. VISION & CORE MISSION
+
+Flentix Systems is an enterprise-grade, multi-tenant B2B SaaS co-working
+management platform and booking engine engineered for pan-European deployment.
+It enables co-working space operators to monetize spaces, automate hardware
+access, handle real-time billing, and deliver fully white-labeled experiences.
+
+**Current Status (PoC):**
+- ~85% feature-complete.
+- Live test operator: **TC Hub (tchub.es)** — fully functional.
+- Master sandbox: https://flentix-systems-sandbox-v2.lovable.app/virtual-office
+- Stripe: **being wired up** (fee/tax model defined — see §4a).
+- TTLock: Live. Brevo: Live. Tako CRM: built, needs integration.
+- Zadarma PBX: strategy defined — Phase 1 (§8).
+
+**White-Label Mandate (Non-Negotiable):** All components must dynamically adjust
+styling and data visibility based on tenant context. Hardcoded branding is
+strictly prohibited.
+
+---
+
+## 2. BRAND IDENTITY (FLENTIX SYSTEMS — CANONICAL)
+
+> ⚠️ **Implementation drift (2026-06-19):** the live sandbox base theme currently
+> uses a **Mediterranean "sunset" palette (orange/coral/golden) with
+> glassmorphism** — this is the **TC Hub tenant** look, **not** the Flentix
+> master brand. The canonical Flentix brand below stands; the sandbox base theme
+> must be **re-skinned to brand** before any Flentix-branded launch. Full brand
+> spec lives in `BRAND_GUIDELINES.md`.
+
+### Primary Colors
+| Color | Hex | Usage |
+|---|---|---|
+| Charcoal | #1F2937 | Primary text, dark backgrounds, logo |
+| Emerald | #10B981 | CTAs, links, success states, accents |
+
+### Supporting Colors
+White #FFFFFF · Light Gray #F3F4F6 · Medium Gray #6B7280 ·
+Error Red #EF4444 · Warning Orange #F59E0B.
+
+### Typography
+- Headings: **Montserrat** (600, 700).
+- Body: **Open Sans** (400, 600).
+
+### Design Principles
+1. **Clean & Minimal** — remove visual noise.
+2. **Geometric Precision** — sharp corners, 90° angles, consistent grid.
+3. **Purposeful Whitespace** — 8px spacing scale.
+4. **Hierarchy First** — largest type = most important.
+
+### CSS Implementation (default fallbacks — Flentix master)
+```css
+:root {
+  --tenant-primary: #10B981;      /* Emerald — Flentix default */
+  --tenant-primary-dark: #059669;
+  --tenant-radius: 4px;           /* geometric but approachable */
+  --tenant-font-heading: 'Montserrat', sans-serif;
+  --tenant-font-body: 'Open Sans', sans-serif;
+}
+```
+Tenants (e.g. TC Hub) override `--tenant-*` to theme their own deployment.
+
+---
+
+## 3. TECH STACK
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite, Tailwind CSS, TanStack Query v5 |
+| Assembly | Lovable.dev |
+| UI Components | shadcn/ui (Radix primitives) |
+| Backend | Supabase (PostgreSQL, Realtime, Edge Functions) — via Lovable Cloud |
+| Security | RLS — no client-side service keys |
+
+> **Note:** decoupling from Lovable onto self-hosted infrastructure is being
+> evaluated for *after* PoC (it's a managed Supabase under the hood, so portable).
+> No action during PoC.
+
+### Third-Party Integrations
+| Service | Purpose | Status |
+|---|---|---|
+| Stripe | B2B subscriptions, Connect, payment intents | Being wired up (§4a) |
+| TTLock | Smart lock PIN codes | Live |
+| Brevo | Transactional emails | Live |
+| Tako CRM | Customer profiles, metrics | Built, needs integration |
+| Zadarma | PBX (telephony) | Strategy defined — Phase 1 (§8) |
+
+---
+
+## 4. DATABASE & RLS (SUMMARY)
+
+### Core tables
+- `profiles` / `users` — roles: `super_admin`, `operator`, `customer`.
+- `spaces` / `hubs` — physical locations, linked via `operator_id`.
+- `bookings` — transactions: `pending`, `confirmed`, `cancelled`.
+- `subscriptions` / `passes` — SaaS licenses, map to Stripe.
+
+### RLS policies (non-negotiable)
+1. Operators access only resources where `operator_id` matches `auth.uid()`.
+2. Customers interact only with own profile, bookings, and public availability.
+3. All mutations use `.select()` to trigger immediate RLS exceptions.
+
+---
+
+## 4a. BILLING, FEES & TAX (CANONICAL — new in v2.1)
+
+Detail in `NOTE_FOR_ARCHITECT.md`; tax positions for the accountant in
+`ACCOUNTANT_BRIEF.md`. Load-bearing facts:
+
+- **Two-party flow.** End-member → operator's **connected** Stripe account: net
+  price **+ 21% Spanish IVA** (the operator's to remit). Medacrii's cut is a
+  **fixed €/tier Stripe Connect application fee**, charged on the **NET**,
+  **never** on the IVA.
+- **Fixed per-tier fee** is set as `application_fee_amount` **on the invoice**
+  via an `invoice.created` webhook (Connect events;
+  `{ stripeAccount: event.account }`). **`application_fee_amount` is NOT valid in
+  Checkout `subscription_data`** — only `application_fee_percent` is, and that
+  percent applies to the **whole invoice total incl. tax**.
+- **The first Checkout subscription invoice finalises immediately** — handle it
+  separately from the renewal webhook.
+- **Reverse charge** on Medacrii's fee is handled by **Medacrii issuing its own
+  B2B reverse-charge invoices** to operators. **Stripe does NOT do this
+  automatically.**
+- **Usage pass-through (future):** metered, billed at 100% cost, no margin.
+- **Write `bookings` money columns from the *actual finalised invoice*** (in
+  `invoice.payment_succeeded`), never guessed at checkout time.
+
+---
+
+## 5. MULTI-AI WORKFLOW (current)
+
+| Role | Tool | Responsibilities |
+|---|---|---|
+| **Owner / Gatekeeper** | Grant | Holds this Constitution; sets direction & pace |
+| **Architect** | **Gemini** | System design, DB, RLS, API contracts, blueprints |
+| **Engineering / Payments / Tax / Audit** | **Claude** | Stripe/tax correctness, code & blueprint audits, repo work, edge functions |
+| **Assembly** | **Lovable.dev** | Building, deployment |
+| **Chief Architect (legacy)** | DeepSeek | Prior architect/Constitution author — *current role to confirm* |
+
+### Constitution-driven workflow
+- This Constitution is the **single source of truth**.
+- Every new AI chat starts with it pasted as the first message.
+- **Grant** is the Constitution Gatekeeper.
+
+> **Note:** the old v2.0 rule "Claude builds atomic components only — no backend
+> logic" is **retired**. Claude now owns payments/tax/engineering audit.
+
+---
+
+## 6. DESIGN GOVERNANCE (white-label pattern)
+
+### White-label pattern
+```tsx
+className="bg-[var(--tenant-primary, #10B981)] rounded-[var(--tenant-radius, 4px)] hover:opacity-90"
+```
+
+### Forbidden patterns
+- ❌ Hardcoded hex codes or brand colors (breaks white-label).
+- ❌ Page-level redesigns (keep in Lovable).
+- ❌ Backend logic inside presentation components.
+
+---
+
+## 7. VIRTUAL OFFICE — 3-TIER OFFERING
+
+**Tier 1 — Business Footprint (Starter):** legal presence + basic mail handling;
+1 Flexi-Desk day pass/month. Target: founders needing a legal "pin on the map".
+
+**Tier 2 — Workspace Hybrid (Growth):** priority mail (30-day + forwarding);
+2 day passes + 2 meeting-room hours/month; member rates. Target: local remote
+professionals.
+
+**Tier 3 — AI Executive Suite (Premium):** everything in Tier 2 + Smart PBX +
+AI receptionist; dedicated Spanish DID; smart call routing; voicemail-to-email;
+10 extensions; 4 day passes + 4 meeting-room hours/month. Target: established
+companies wanting an elite image.
+
+**KYC (all tiers, critical for Tier 3):** checkout includes ID/passport + address
+proof upload for Spanish telephony compliance.
+
+> Legacy `mail` Stripe price stays live for existing subscribers; the funnel
+> presents 3 tiers (Starter/Growth/Premium).
+
+---
+
+## 8. PBX SYSTEM ARCHITECTURE (ZADARMA-FIRST)
+
+**Phase 1 — market validation via Zadarma Dealer API.** No custom PBX UI build
+until volume justifies; use Zadarma's native interface initially.
+
+### 11-step integration sequence
+1. Register user — `POST /v1/reseller/users/registration/new/`
+2. Confirm registration — `POST /v1/reseller/users/registration/confirm/`
+3. Add contact number — `POST /v1/reseller/users/phones/add/`
+4. Verify via SMS — `POST /v1/reseller/users/phones/prove_by_sms`
+5. Confirm phone — `POST /v1/reseller/users/phones/confirm`
+6. Transfer funds — `GET /v1/reseller/users/topup/`
+7. Purchase number — Virtual number API + `user_id`
+8. Create PBX — `POST /v1/pbx/create/`
+9. Add extensions — `POST /v1/pbx/internal/create/`
+10. Call routing — `POST /v1/pbx/ivr/scenario/create/`
+11. Configure webhooks — `POST /v1/pbx/webhooks/url/`
+
+**Webhook architecture:** your server is the control plane — receives call
+notifications, looks up client ownership, triggers IVR, routes calls, logs for
+billing. **White-label confirmed** (clients never see Zadarma).
+
+**Phase 2 migration path:** provider-agnostic Facade Pattern — same internal API
+signatures, swap implementation for Twilio/FreeSWITCH later.
+
+**Dealer account:** email `manage@zadarma.com` — no setup fees, pay-as-you-go.
+
+---
+
+## 9. SYSTEM HARDENING (already solved)
+
+- **Async pipeline (`detachedInvoke`):** UI waits only for the DB write;
+  third-party calls (Stripe, TTLock, Tako) run in `Promise.allSettled` with an
+  8000ms timeout. If an integration hangs, a toast warns but the DB commit stands.
+- **iOS PWA stability:** `AdminErrorBoundary.tsx` catches mobile render
+  exceptions; deterministic ISO-date chart mapping; session purge on PWA
+  reactivation; custom back-nav for standalone mode.
+
+---
+
+## 10. CONSTITUTION GOVERNANCE
+
+- **Owner / Gatekeeper:** Grant.
+- **Storage:** this repo (`flentix-docs`), `CONSTITUTION.md`.
+- **Versioning:** semantic (v2.1, v2.2, …).
+- **New chat onboarding:** always paste this Constitution first.
+
+### Changelog
+- **v2.1.0 (2026-06-19):** entities corrected (Medacrii); AI workflow updated
+  (Gemini architect, Claude engineering/tax); brand confirmed emerald-canonical
+  with sandbox-drift note; Stripe fee/tax model added; removed false
+  "Stripe auto reverse-charge" claim; consolidated into `flentix-docs`.
+- **v2.0.0 (2026-06-13):** prior master blueprint (DeepSeek).
