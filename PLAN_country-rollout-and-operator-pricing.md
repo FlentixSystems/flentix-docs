@@ -25,7 +25,14 @@ frontend, built via Lovable.
 - ✅ **Task 3** — `virtual_office_plans` (hub-keyed; RLS via `is_current_user_admin()`; empty). Verified.
 - ✅ **Task 5** — `virtual_office_subscriber_compliance` (RLS mirrors subscriber: `has_workspace_access` + customer-owns-own). Verified.
 - ✅ **Task 6** — enable-gate trigger live; negative-tested (PT with no KYC blocked) + Spain unaffected. Verified.
-- ⏸️ **Task 4** — checkout rewrite (PAYMENTS). Paused for founder review before changing live payment code.
+- 🔄 **Task 4** — EXPANDED to a full canonical-tier migration + dynamic pricing (building via Lovable). Founder decisions locked:
+  - Legacy product set is actually **3 tiers already** (`starter`/`workspace`/`phone`) → clean **3→3 rename**: `workspace`→`growth`, `phone`→`premium`, `starter` unchanged. Not a 4→3 consolidation.
+  - All `virtual_office_subscribers` test data is disposable (table verified **empty** — cleanup is a no-op).
+  - Storefront reads a new `public.get_virtual_office_plan(hub_id, tier)` SECURITY DEFINER RPC so displayed price = charged price (override else recommendation by hub country).
+  - Monthly/annual toggle added; annual uses `*_annual_net` (full yearly charge) + Stripe `recurring.interval='year'`.
+  - Platform fee: PROVISIONAL €2/€30/€50, annual = fee × 12. Final values + annual policy still founder/accountant territory.
+  - Connect direct-charge, 21% IVA, fixed `application_fee_percent` mechanism all preserved.
+  - Scope is wider than the original Task 4: also renames tier ids in `create-telecom-setup-intent`, `resolve-kyc-token`, `resend-kyc-link`, admin `VirtualOfficePanel` (TIER_LABELS), portal (`PortalMailroom`, `ActivatePhone`, `usePortalTier`). `engine_type`/`workspace_id`/mailroom code untouched.
 - ⬜ **Tasks 7, 8, 9** — admin Country Setup, dynamic KYC UI, operator pricing UI.
 
 ## Global Constraints
