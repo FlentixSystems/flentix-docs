@@ -154,6 +154,23 @@ create table public.virtual_office_subscriber_compliance (
 ```
 > `prefix_registry` FK column names to be confirmed against its actual PK during build.
 
+### 2.5 Admin "Country Setup" flow — the confirmation gate before a market opens
+Adding a country is an **admin-only setup step** that *prompts the operator-platform admin
+(us) to enter and confirm* the country's compliance configuration before it can go live.
+It writes one `countries_config` row. The form prompts for:
+
+- **VAT rate + VAT label** (e.g. 21% / "IVA") — entered and confirmed here, by us.
+- **KYC weight + required KYC document list** — drives the dynamic upload UI (Rule 2).
+- **Numbering** (Tier-2 national range / Tier-3 geographic zone via `prefix_registry`).
+- **Geographic-moat flag** (off for France).
+- Recommended launch prices (seeds `tier_price_recommendations`).
+
+**Hard gate:** `is_enabled` cannot be set `true` — and the country cannot appear in the
+customer sign-up dropdown — until **VAT rate, VAT label, and at least one required KYC
+document** are present. Enforce at the application layer and ideally with a DB constraint /
+trigger. This is the "confirm before we move into the market" checkpoint: a half-configured
+country can never leak live.
+
 ---
 
 ## 3. The three system rules (kept from Gemini, with the fixes)
@@ -188,10 +205,16 @@ create table public.virtual_office_subscriber_compliance (
 3. **Remove legacy 4-key tiers** (`mail`/`workspace`/`phone` and any `starter` price-map
    entries) from `create-virtual-office-checkout`; remap any existing test subscriber/booking
    rows to `starter`/`growth`/`premium`.
-4. Seed Spain `tier_price_recommendations` from strategy doc §6 (Tier 1 ≈ €32, Tier 2 ≈ €64,
-   Tier 3 ≈ €94 — Grant to confirm exact launch numbers), monthly. Annual recommendation
-   optional. **Do not** seed from the legacy 4 hardcoded amounts — they don't map 1:1 to the
-   3 canonical tiers.
-5. Confirm the per-period fixed application-fee math for **annual** invoices (the
+4. Seed Spain `tier_price_recommendations` with the confirmed launch numbers (all ex-VAT):
+   - **Monthly (no-commit):** Starter €29 / Growth €69 / Premium €119 → `recommended_monthly_net`.
+   - **Annual (per-month rate, billed yearly):** Starter €24 / Growth €59 / Premium €99.
+     Store `recommended_annual_net` as the **full yearly charge** (e.g. €24 → 28800 cents),
+     display as "€24/mo billed annually". Stripe charges the yearly total once.
+   - **Do not** seed from the legacy 4 hardcoded amounts.
+5. **Launch offer (€19 / €49 / €89) is a time-limited promotion, NOT a base price.** Model it
+   via the existing `promo_codes` table (or a dated promo override) with a start/end date so it
+   expires on its own and the base monthly/annual numbers stay clean. Do not write it into
+   `tier_price_recommendations`.
+6. Confirm the per-period fixed application-fee math for **annual** invoices (the
    `application_fee_percent`-on-first-invoice trick from NOTE_FOR_ARCHITECT §0 must be
    recomputed against the annual gross, not the monthly gross).
