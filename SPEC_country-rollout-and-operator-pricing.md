@@ -86,15 +86,17 @@ create table public.tier_price_recommendations (
 ```
 
 ### 2.2 `virtual_office_plans` — the operator's chosen price (the override)
-One row per operator × country × tier. Replaces the hardcoded price map in the checkout
-function. Monthly required; annual optional (blank = operator does not offer annual for that
-tier). If no row exists for a tier, the checkout falls back to the recommendation in 2.1.
+**The operator is identified by `hub_id` → `virtual_hubs`** — that is already how the live
+checkout routes the direct charge (`virtual_hubs.stripe_connect_id`), and a hub carries its
+own `country_code`. So plans key on **hub × tier**; the country is derived from the hub, not
+stored again. Monthly required; annual optional (blank = that hub does not offer annual for
+that tier). If no row exists for a tier, the checkout falls back to the recommendation in 2.1
+(looked up by the hub's `country_code`).
 
 ```sql
 create table public.virtual_office_plans (
   id uuid primary key default gen_random_uuid(),
-  operator_id uuid not null,                -- the connected operator (organization/workspace owner)
-  country_id text not null references public.countries_config(id),
+  hub_id uuid not null references public.virtual_hubs(id),  -- the operator/location (carries stripe_connect_id + country_code)
   tier text not null check (tier in ('starter','growth','premium')),
   monthly_net integer not null,             -- cents, NET of VAT — operator's chosen monthly price
   annual_net integer,                       -- cents, NET of VAT — operator's chosen annual price; null = not offered
@@ -102,14 +104,16 @@ create table public.virtual_office_plans (
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (operator_id, country_id, tier)
+  unique (hub_id, tier)
 );
 ```
 
-> **Checkout change:** `create-virtual-office-checkout` stops reading `CONNECT_TIER_PRICE_DATA`
-> hardcoded amounts. The customer picks tier + interval (monthly/annual); the function resolves
-> the net price as: operator's `virtual_office_plans.{monthly_net|annual_net}` → else the
-> matching `tier_price_recommendations` value. It creates/uses the Stripe Price for the chosen
+> **Checkout change:** `create-virtual-office-checkout` already receives `hub_id` and looks up
+> `virtual_hubs` for `stripe_connect_id`; extend that same lookup to also read `country_code`.
+> It stops reading `CONNECT_TIER_PRICE_DATA` hardcoded amounts. The customer picks tier +
+> interval (monthly/annual); the function resolves the net price as:
+> `virtual_office_plans.{monthly_net|annual_net}` for that `hub_id` → else the matching
+> `tier_price_recommendations` value for the hub's `country_code`. It creates/uses the Stripe Price for the chosen
 > interval, then adds VAT per §2.3 (still exclusive/added at line-item time, as today). The
 > fixed application fee and direct-charge-on-connected-account logic is unchanged
 > (NOTE_FOR_ARCHITECT §0) — note the fixed per-period fee math differs for annual vs monthly
@@ -199,9 +203,11 @@ country can never leak live.
 
 ## 5. Open items for the build prompt
 
-1. Confirm `operator_id` source of truth (organization vs workspace vs connected-account id)
-   against the live schema before writing the FK.
-2. Confirm `prefix_registry` primary key column name for the two number FKs.
+1. ~~Confirm operator source of truth.~~ **RESOLVED:** operator = `virtual_hubs` row; key is
+   `hub_id`; connected account = `virtual_hubs.stripe_connect_id`; country = `virtual_hubs.country_code`.
+2. ~~Confirm `prefix_registry` PK.~~ **RESOLVED:** `prefix_registry.id` (uuid). Note it keys on
+   `(country_code, postal_prefix)` with `geographic_prefix` — zone match for Tier 3 is on
+   `geographic_prefix` vs the hub's `phone_prefix`.
 3. **Remove legacy 4-key tiers** (`mail`/`workspace`/`phone` and any `starter` price-map
    entries) from `create-virtual-office-checkout`; remap any existing test subscriber/booking
    rows to `starter`/`growth`/`premium`.
