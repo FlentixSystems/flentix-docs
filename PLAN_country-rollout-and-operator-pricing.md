@@ -18,6 +18,16 @@ untouched.
 **Tech Stack:** Supabase (Postgres + RLS), Deno edge functions, Stripe Connect, Vite/React/shadcn
 frontend, built via Lovable.
 
+## Build progress (live)
+
+- ✅ **Task 1** — `countries_config` + Spain seeded (built 2026-06-21 09:04; correct corrected columns).
+- ✅ **Task 2** — `tier_price_recommendations` + Spain launch prices (29/69/119 monthly, 288/708/1188 annual). Verified.
+- ✅ **Task 3** — `virtual_office_plans` (hub-keyed; RLS via `is_current_user_admin()`; empty). Verified.
+- ✅ **Task 5** — `virtual_office_subscriber_compliance` (RLS mirrors subscriber: `has_workspace_access` + customer-owns-own). Verified.
+- ✅ **Task 6** — enable-gate trigger live; negative-tested (PT with no KYC blocked) + Spain unaffected. Verified.
+- ⏸️ **Task 4** — checkout rewrite (PAYMENTS). Paused for founder review before changing live payment code.
+- ⬜ **Tasks 7, 8, 9** — admin Country Setup, dynamic KYC UI, operator pricing UI.
+
 ## Global Constraints
 
 - **Canonical tiers = `starter`, `growth`, `premium`** (3 only). Legacy `mail`/`workspace`/`phone`
