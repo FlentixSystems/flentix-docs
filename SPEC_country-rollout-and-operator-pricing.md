@@ -39,30 +39,45 @@ validation; `has_geographic_moat = false` for France.
 
 ## 1. Locked decisions for this round (confirmed by Grant)
 
-1. **Operators set their own prices** — per tier, including in Spain at launch. We
+1. **Canonical tiers = 3:** `starter` (Tier 1), `growth` (Tier 2), `premium` (Tier 3),
+   per the strategy doc. The legacy 4-key set (`starter`/`mail`/`workspace`/`phone`) is
+   **removed completely**; any existing test rows are remapped to the 3-tier keys (PoC test
+   data only — not a real migration).
+2. **Operators set their own prices** — per tier, including in Spain at launch. We
    **heavily recommend** a market price and pre-fill it, but the operator can override.
-2. **Recommend, don't dictate.** Recommended price = our number per country × tier.
+3. **Recommend, don't dictate.** Recommended price = our number per country × tier × interval.
    Operator price = their chosen number; defaults to the recommendation until they change it.
-3. **Pricing is the foundation; country compliance bolts on top.** Prices move out of code
+4. **Monthly and annual billing.** Each tier carries a monthly price and an **optional**
+   annual price (the operator's discounted figure). Blank annual = that operator does not
+   offer annual for that tier. Both are operator-adjustable.
+5. **Pricing is the foundation; country compliance bolts on top.** Prices move out of code
    into tables *first*, so adding a country and letting operators price are the same
    underlying capability — no rebuild.
-4. **VAT rate/label is per-country configuration.** The actual rates, and who is
-   VAT-registered in each country, are **accountant territory** — this spec provides the
-   columns; it does not invent the numbers.
+6. **VAT rate is country law, NOT an operator setting.** The rate is set **once per country
+   by us** (with the accountant) in `countries_config`; every operator in that country
+   inherits it. An operator never confirms or edits the rate. The only tax item an operator
+   supplies is **their own VAT registration number** (captured at onboarding, printed on
+   their invoices as Merchant of Record). Actual rates + registration positions are
+   **accountant territory** — this spec provides the columns, not the numbers.
 
 ---
 
 ## 2. Data model
 
+> **Tier keys throughout:** `starter` (Tier 1), `growth` (Tier 2), `premium` (Tier 3).
+> **Interval keys:** `monthly`, `annual`. Net amounts are minor units (cents), NET of VAT.
+
 ### 2.1 `tier_price_recommendations` — our "heavily recommended" price
-One row per country × tier. This is the market-intelligence number the UI pre-fills.
+One row per country × tier. Monthly required, annual optional. This is the market-intelligence
+number the UI pre-fills.
 
 ```sql
 create table public.tier_price_recommendations (
   id uuid primary key default gen_random_uuid(),
   country_id text not null references public.countries_config(id),
-  tier text not null,                       -- 'starter' | 'mail' | 'workspace' | 'phone' (existing keys)
-  recommended_net_amount integer not null,  -- minor units (cents), NET of VAT
+  tier text not null check (tier in ('starter','growth','premium')),
+  recommended_monthly_net integer not null,  -- cents, NET of VAT
+  recommended_annual_net integer,            -- cents, NET of VAT; null = no annual recommendation
   currency text not null default 'EUR',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -72,15 +87,17 @@ create table public.tier_price_recommendations (
 
 ### 2.2 `virtual_office_plans` — the operator's chosen price (the override)
 One row per operator × country × tier. Replaces the hardcoded price map in the checkout
-function. If no row exists for a tier, the checkout falls back to the recommendation in 2.1.
+function. Monthly required; annual optional (blank = operator does not offer annual for that
+tier). If no row exists for a tier, the checkout falls back to the recommendation in 2.1.
 
 ```sql
 create table public.virtual_office_plans (
   id uuid primary key default gen_random_uuid(),
   operator_id uuid not null,                -- the connected operator (organization/workspace owner)
   country_id text not null references public.countries_config(id),
-  tier text not null,
-  net_amount integer not null,              -- minor units (cents), NET of VAT — operator's chosen price
+  tier text not null check (tier in ('starter','growth','premium')),
+  monthly_net integer not null,             -- cents, NET of VAT — operator's chosen monthly price
+  annual_net integer,                       -- cents, NET of VAT — operator's chosen annual price; null = not offered
   currency text not null default 'EUR',
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
@@ -90,10 +107,13 @@ create table public.virtual_office_plans (
 ```
 
 > **Checkout change:** `create-virtual-office-checkout` stops reading `CONNECT_TIER_PRICE_DATA`
-> hardcoded amounts and instead resolves price as: operator's `virtual_office_plans.net_amount`
-> → else `tier_price_recommendations.recommended_net_amount`. VAT is then added on top per
-> §2.3 (still exclusive/added at line-item time, as today). The fixed application fee and
-> direct-charge-on-connected-account logic is unchanged (NOTE_FOR_ARCHITECT §0).
+> hardcoded amounts. The customer picks tier + interval (monthly/annual); the function resolves
+> the net price as: operator's `virtual_office_plans.{monthly_net|annual_net}` → else the
+> matching `tier_price_recommendations` value. It creates/uses the Stripe Price for the chosen
+> interval, then adds VAT per §2.3 (still exclusive/added at line-item time, as today). The
+> fixed application fee and direct-charge-on-connected-account logic is unchanged
+> (NOTE_FOR_ARCHITECT §0) — note the fixed per-period fee math differs for annual vs monthly
+> invoices and must be set accordingly.
 
 ### 2.3 `countries_config` — master switchboard (Gemini's, corrected)
 A country becomes selectable only once its row exists and `is_enabled = true`.
@@ -165,10 +185,13 @@ create table public.virtual_office_subscriber_compliance (
 1. Confirm `operator_id` source of truth (organization vs workspace vs connected-account id)
    against the live schema before writing the FK.
 2. Confirm `prefix_registry` primary key column name for the two number FKs.
-3. Backfill: seed `tier_price_recommendations` for Spain from current hardcoded amounts
-   (3500/5900/8900/11900) so behaviour is unchanged on day one.
-4. **Tier vocabulary mismatch to resolve:** the strategy doc uses a 3-tier model
-   (Starter / Growth / Premium), but the live checkout uses 4 keys
-   (`starter`, `mail`, `workspace`, `phone`). Confirm the canonical tier set before
-   seeding `tier_price_recommendations`, so the recommended-price rows line up 1:1 with
-   what checkout actually requests.
+3. **Remove legacy 4-key tiers** (`mail`/`workspace`/`phone` and any `starter` price-map
+   entries) from `create-virtual-office-checkout`; remap any existing test subscriber/booking
+   rows to `starter`/`growth`/`premium`.
+4. Seed Spain `tier_price_recommendations` from strategy doc §6 (Tier 1 ≈ €32, Tier 2 ≈ €64,
+   Tier 3 ≈ €94 — Grant to confirm exact launch numbers), monthly. Annual recommendation
+   optional. **Do not** seed from the legacy 4 hardcoded amounts — they don't map 1:1 to the
+   3 canonical tiers.
+5. Confirm the per-period fixed application-fee math for **annual** invoices (the
+   `application_fee_percent`-on-first-invoice trick from NOTE_FOR_ARCHITECT §0 must be
+   recomputed against the annual gross, not the monthly gross).
