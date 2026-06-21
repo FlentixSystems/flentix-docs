@@ -25,7 +25,7 @@ frontend, built via Lovable.
 - ✅ **Task 3** — `virtual_office_plans` (hub-keyed; RLS via `is_current_user_admin()`; empty). Verified.
 - ✅ **Task 5** — `virtual_office_subscriber_compliance` (RLS mirrors subscriber: `has_workspace_access` + customer-owns-own). Verified.
 - ✅ **Task 6** — enable-gate trigger live; negative-tested (PT with no KYC blocked) + Spain unaffected. Verified.
-- 🔄 **Task 4** — EXPANDED to a full canonical-tier migration + dynamic pricing (building via Lovable). Founder decisions locked:
+- ✅ **Task 4** — EXPANDED to a full canonical-tier migration + dynamic pricing. BUILT & VERIFIED 2026-06-21. `get_virtual_office_plan` RPC returns correct recommendation prices (29/69/119 monthly; 288/708/1188 annual) and operator overrides win when present (tested with a temp €75 override, then removed). Diff confirms Connect/IVA/fixed-fee preserved; rename surgical. Founder decisions locked:
   - Legacy product set is actually **3 tiers already** (`starter`/`workspace`/`phone`) → clean **3→3 rename**: `workspace`→`growth`, `phone`→`premium`, `starter` unchanged. Not a 4→3 consolidation.
   - All `virtual_office_subscribers` test data is disposable (table verified **empty** — cleanup is a no-op).
   - Storefront reads a new `public.get_virtual_office_plan(hub_id, tier)` SECURITY DEFINER RPC so displayed price = charged price (override else recommendation by hub country).
@@ -363,6 +363,18 @@ create trigger trg_country_enable_gate
 - **Tier-3 hub↔zone provisioning + strict validation (Rule 3)** — validate the chosen hub's
   `phone_prefix` against `prefix_registry.geographic_prefix` at number assignment; needs the
   numbering/provisioning flow, a later phase.
+- **Tier-2 (Growth) optional geographic number for the already-qualified** (founder rule, 2026-06-21):
+  Growth's default number is national/nomadic (51x). BUT if the customer *independently* already
+  resides at / holds a registered office in a geographic zone (their OWN address — NOT one we
+  provide), they qualify for that zone's local geographic prefix, and we offer it as an **option**
+  at Growth. Key distinction that preserves the Tier-3 moat: at Growth we do **not** apply for or
+  provide the in-zone address (that provisioning IS the paid Premium service); we only attach a
+  geographic number when the customer already qualifies on their own. Schema already supports this —
+  `virtual_office_subscriber_compliance.assigned_geographic_number_id` exists on every row, not just
+  Premium. Later phase needs: (a) a lightweight self-declared-in-zone-address capture + check at
+  Growth checkout, (b) a national-vs-geographic choice shown only when their postal code matches a
+  `prefix_registry` zone, (c) reuse of the Rule-3 zone-match validation. Do NOT auto-apply — it is
+  opt-in and eligibility-gated.
 - **Asset (desk/office) operator pricing** — same recommend+override pattern, separate table.
 - **Non-Spain VAT rates + registration** — accountant brief before each country is enabled.
 
