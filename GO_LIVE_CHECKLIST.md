@@ -9,21 +9,22 @@ See [NOTE_FOR_ARCHITECT.md](NOTE_FOR_ARCHITECT.md) (billing/tax facts) and
 
 ## A. Stripe Connect & payments (the money model)
 
-- [ ] **CRITICAL — every operator must have their OWN Stripe connected account.** In the
-  current sandbox the test hub `XY Labs - Granada Coast` has `stripe_connect_id =
-  acct_1TjSGaLUnJuGzBr8`, which is **Flentix's own platform account**. That is why a test
-  charge shows the **full amount** in the Flentix account with **no fee split** — you cannot
-  take an application fee from yourself. Before go-live, each hub's `stripe_connect_id` must be
-  a **distinct** connected account belonging to that operator, onboarded via Stripe Connect.
-  Platform account ID must NEVER appear as a hub's `stripe_connect_id`.
-- [ ] **Verify the split on a real connected account:** after onboarding a separate operator
-  test account and pointing the hub at it, a checkout should show: **full charge in the
-  OPERATOR's** connected account (operator = Merchant of Record), and only the **application
-  fee** in the **Flentix/Medacrii platform** account.
-- [ ] **Where the fee is visible (educate / confirm):** the application fee does NOT appear in
-  the platform's main *Payments* list. It appears in the platform account under **Balance →
-  Transactions** (type: *application fee*) and **Connect → Application fees**. The *Payments*
-  list shows charges the account is Merchant of Record for.
+- [x] **Account hierarchy verified (2026-06-21):** Platform/Master = **`acct_1TeFkSLUNJ0dTYxa`**;
+  connected tenant (Spacio-Lab test hub) = **`acct_1TjSGaLUnJuGzBr8`**. The hub's
+  `stripe_connect_id` correctly = the **connected** account, so the test setup is CORRECT — the
+  full charge landing on `acct_1TjSGaLUnJuGzBr8` is expected (it's the operator/Merchant of Record).
+  (Earlier "hub points at the platform's own account" worry was a misread before the platform id
+  was known.)
+- [ ] **Confirm the fee on the PLATFORM account:** in `acct_1TeFkSLUNJ0dTYxa` look under
+  **Connect → Application fees** (and **Balance → Transactions**, type *application fee*) — NOT the
+  *Payments* list. Each test subscription's first invoice should show the fixed per-tier fee. Verify
+  the fixed fee equals the intended €/tier against the gross.
+- [ ] **Every real operator gets their OWN connected account** (onboarded via Connect); a hub's
+  `stripe_connect_id` must never be the platform id `acct_1TeFkSLUNJ0dTYxa`.
+- [ ] **NEVER** use `application_fee_amount` in `subscription_data` (Stripe rejects it → breaks
+  checkout). First invoice uses `application_fee_percent`; renewals set `application_fee_amount` on
+  the draft invoice via the `invoice.created` Connect webhook. (Flagged because a blueprint
+  re-proposed the wrong form on 2026-06-21.)
 - [ ] **Swap test keys → live keys:** `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` /
   `VITE_SUPABASE_PUBLISHABLE_KEY` usage, and the **live webhook signing secret**.
 - [ ] **Finalise the platform fee** — replace the PROVISIONAL `FEE_CENTS` (starter €2 /
