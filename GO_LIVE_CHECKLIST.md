@@ -9,6 +9,17 @@ See [NOTE_FOR_ARCHITECT.md](NOTE_FOR_ARCHITECT.md) (billing/tax facts) and
 
 ## A. Stripe Connect & payments (the money model)
 
+- [ ] **🔴 NEEDED NOW (blocks the whole VO flow) — register a Connect webhook endpoint.** Because
+  VO checkout is a direct charge on the connected account, `checkout.session.completed` is a
+  **Connect event** delivered only to a "Events on Connected accounts" endpoint. Without it, the
+  webhook never fires → no subscriber/email/admin row (confirmed in the first test). Steps:
+  Stripe → Developers → Webhooks → **Add endpoint** → choose **"Events on Connected accounts"** →
+  URL = the same `stripe-webhook` function URL as the platform endpoint
+  (`https://wdbxhexqilgqxvkpbsqy.supabase.co/functions/v1/stripe-webhook` — confirm against the
+  existing endpoint) → events: `checkout.session.completed` (+ `invoice.payment_succeeded`,
+  `invoice.created` for renewals/fees) → copy its signing secret → set project secret
+  **`STRIPE_CONNECT_WEBHOOK_SECRET`**. Code already handles both secrets + connected-account context.
+
 - [x] **Account hierarchy verified (2026-06-21):** Platform/Master = **`acct_1TeFkSLUNJ0dTYxa`**;
   connected tenant (Spacio-Lab test hub) = **`acct_1TjSGaLUnJuGzBr8`**. The hub's
   `stripe_connect_id` correctly = the **connected** account, so the test setup is CORRECT — the
