@@ -35,8 +35,14 @@ frontend, built via Lovable.
   - Scope is wider than the original Task 4: also renames tier ids in `create-telecom-setup-intent`, `resolve-kyc-token`, `resend-kyc-link`, admin `VirtualOfficePanel` (TIER_LABELS), portal (`PortalMailroom`, `ActivatePhone`, `usePortalTier`). `engine_type`/`workspace_id`/mailroom code untouched.
 - ✅ **Task 9** — operator Pricing screen (admin area). Hub selector + per-tier recommended/own/effective; saves to `virtual_office_plans` (upsert; clear → delete → recommendation). Built 2026-06-21.
 - ✅ **Task 7** — admin Country Setup screen + new admin-gated edge function `manage-country-config` (service-role writes to `countries_config`/`tier_price_recommendations`; admin gate matches app's `is_current_user_admin` = role 'admin', plus owner-email break-glass — audited OK). VAT entered as %, stored as fraction; enable toggle gated client-side, DB trigger as backstop. Built 2026-06-21.
-- 🔄 **Task 8** — dynamic KYC upload (slots from `countries_config.required_kyc_docs`, writes `virtual_office_subscriber_compliance`). Building via Lovable.
-- ⬜ **Follow-ups:** Stripe test-mode click-through verification; cosmetic copy tidy (Growth blurb); storefront has no country dropdown yet (hardcoded ES) — when added it must filter `is_enabled = true`.
+- ✅ **Task 8** — dynamic KYC upload. `KycUpload.tsx` now renders slots from `required_kyc_docs` (hardcoded Autónomo/SL logic removed); `resolve-kyc-token` returns `country_id`/`required_kyc_docs`/`subscriber_id`; `submit-kyc-documents` upserts `virtual_office_subscriber_compliance` **server-side via service role** (RLS-safe), kyc_status submitted/pending by completeness. Built 2026-06-21.
+
+**ALL 9 TASKS BUILT.** Real follow-ups (none blocking, ES-only today):
+- **`hub_id` is not persisted on `virtual_office_subscribers`.** Checkout receives it but the webhook doesn't store it. Consequence: KYC/compliance country resolution defaults to `'ES'` server-side (fine while ES is the only live country). Before the 2nd country: persist `hub_id` on the subscriber (or in `engine_metadata`), then resolve country via `virtual_hubs.country_code` in `resolve-kyc-token` + `submit-kyc-documents` (one-line swap each, already noted in code).
+- **Confirm `customer_services.legacy_order_id` → `virtual_office_subscribers.id`** on the first real test signup (the compliance upsert depends on it; non-fatal if wrong, just logs).
+- **Stripe test-mode click-through** — verify a real checkout per tier × interval shows the right € + 21% IVA on the connected account.
+- **Storefront has no country dropdown** (hardcoded ES) — when added, filter `countries_config.is_enabled = true`.
+- Cosmetic: tidy the Growth blurb copy in the pricing panel.
 
 ## Global Constraints
 
