@@ -33,7 +33,10 @@ frontend, built via Lovable.
   - Platform fee: PROVISIONAL €2/€30/€50, annual = fee × 12. Final values + annual policy still founder/accountant territory.
   - Connect direct-charge, 21% IVA, fixed `application_fee_percent` mechanism all preserved.
   - Scope is wider than the original Task 4: also renames tier ids in `create-telecom-setup-intent`, `resolve-kyc-token`, `resend-kyc-link`, admin `VirtualOfficePanel` (TIER_LABELS), portal (`PortalMailroom`, `ActivatePhone`, `usePortalTier`). `engine_type`/`workspace_id`/mailroom code untouched.
-- ⬜ **Tasks 7, 8, 9** — admin Country Setup, dynamic KYC UI, operator pricing UI.
+- ✅ **Task 9** — operator Pricing screen (admin area). Hub selector + per-tier recommended/own/effective; saves to `virtual_office_plans` (upsert; clear → delete → recommendation). Built 2026-06-21.
+- ✅ **Task 7** — admin Country Setup screen + new admin-gated edge function `manage-country-config` (service-role writes to `countries_config`/`tier_price_recommendations`; admin gate matches app's `is_current_user_admin` = role 'admin', plus owner-email break-glass — audited OK). VAT entered as %, stored as fraction; enable toggle gated client-side, DB trigger as backstop. Built 2026-06-21.
+- 🔄 **Task 8** — dynamic KYC upload (slots from `countries_config.required_kyc_docs`, writes `virtual_office_subscriber_compliance`). Building via Lovable.
+- ⬜ **Follow-ups:** Stripe test-mode click-through verification; cosmetic copy tidy (Growth blurb); storefront has no country dropdown yet (hardcoded ES) — when added it must filter `is_enabled = true`.
 
 ## Global Constraints
 
