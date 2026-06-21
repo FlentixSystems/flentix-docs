@@ -61,6 +61,27 @@ See [NOTE_FOR_ARCHITECT.md](NOTE_FOR_ARCHITECT.md) (billing/tax facts) and
   "Workspace Hybrid" / "AI Executive Suite" vs the tier labels Starter/Growth/Premium) and make
   them consistent across storefront, Stripe descriptions, portal and admin.
 
+## B2. Virtual Office journey — config to switch on (needed for the flow to work end-to-end)
+
+The VO journey is wired in code (2026-06-21): order-ack email (`vo_order_ack`), KYC link email,
+KYC-received email (`vo_kyc_received`), passwordless `/portal/login`, subscriber↔customer link,
+mailroom pending state, day-credit→bono→TTLock. These config items must be ON for it to run:
+
+- [ ] **Supabase Auth — Redirect URLs:** add the preview/live origin + `/portal/mailroom` to
+  Auth → URL Configuration (Site URL + Redirect URLs), or the magic-link login will reject the
+  redirect.
+- [ ] **Supabase Auth — email/SMTP:** the magic-link email is sent by Supabase Auth (not our
+  Brevo functions). Configure Auth SMTP (ideally Brevo) + the email template for production; in
+  test the default sender works but is rate-limited.
+- [ ] **`BREVO_DIRECT_API_KEY` secret** must be set (the `vo_kyc_received` email uses it; it
+  skips silently if missing).
+- [ ] **`FRONTEND_URL` secret** must point at the real app domain (the activation email's
+  "Access your portal" button uses it; defaults to `https://flentixsystems.com`).
+- [ ] **Automated KYC reminder** (optional) — currently only the manual admin "Resend KYC" exists.
+  A scheduled function could nudge `kyc_submitted = false` subscribers after N days (cap ~2).
+- [ ] **Email re-brand:** the new VO emails use the current TC Hub orange; re-skin to emerald
+  with the app.
+
 ## C. Deferred features (do before selling them)
 
 - [ ] **Outbound-telesales add-on fee routing** onto the Connect rails (flag column already exists).
