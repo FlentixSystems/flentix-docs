@@ -116,3 +116,36 @@ https://zadarma.com/en/support/api/ , https://zadarma.com/en/support/instruction
 - **Payment-time invoicing:** ✅ build on it; accountant = go-live gate.
 - **Auto-run:** ✅ adopted as the backbone (§1.6).
 - **Vision LLM:** ✅ adopted, model updated to Claude Haiku 4.5 (3.5 Sonnet is outdated; single provider).
+
+## 8. Usage / overage billing (founder requirement 2026-06-24 — PENDING decisions + Zadarma model confirm)
+Phone tiers (Growth/Premium) include a monthly **free-minute allowance**; usage above it is charged to the customer.
+
+**Reality check — Zadarma is PREPAID:** it deducts call cost from the MEDACRII balance **in real time, per call**
+(dashboard shows balance + Top-Up), NOT a periodic invoice. So there is no "Zadarma debits my account in 48h"
+event — depletion is continuous. ⚠️ **CONFIRM** whether the distributor account has any postpaid/invoiced terms;
+if not, the prepaid design below applies.
+
+**Founder goal:** collect the customer's overage money BEFORE Flentix is out of pocket; if the customer doesn't
+pay, CUT their service immediately (no buffer), mirroring how Zadarma cuts off on an empty balance.
+
+**Design (prepaid model):**
+- Meter per-customer usage by pulling Zadarma **CDR/statistics** for each customer's number/SIP on a schedule.
+- Track usage vs the tier's free allowance per cycle; overage = (minutes used − free) × rate.
+- **Threshold-based recovery (recommended):** when a customer's accrued overage reaches a cap (e.g. €20),
+  email them (**48h notice**), then **auto-charge their saved card off-session** (reuse the subscription PM).
+  Flentix never fronts more than the cap.
+- **On charge failure → suspend the customer's Zadarma number immediately** (remove SIP routing / suspend),
+  no grace; restore on successful payment.
+- Recovered funds replenish the Zadarma balance (manual or auto top-up) so paying customers keep service.
+
+**Decisions needed (founder):**
+1. **Free minutes:** Growth = ?, Premium = ? — AND to WHICH destinations (Spanish national vs mobile vs
+   international differ hugely in cost) and INBOUND vs OUTBOUND (allowance is usually outbound).
+2. **Overage rate:** pass-through at Zadarma cost (no margin — per prior note) OR cost + margin? Per-destination.
+3. **Recovery trigger:** threshold (€ cap) vs monthly cycle.
+4. **Notify window:** 48h (founder suggestion) — confirm; charge after notice.
+5. **Suspend/restore:** hard cut on failure, no grace (founder-confirmed); restore on payment.
+
+**Compliance/UX:** variable off-session charges need a clear **usage-billing mandate disclosed at signup** +
+advance notice (the 48h satisfies this) — fold into the consent step. (Stripe off-session PaymentIntent on the
+saved PM; SCA/mandate considerations apply.)
