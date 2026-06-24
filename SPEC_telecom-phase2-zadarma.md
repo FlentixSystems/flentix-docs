@@ -211,8 +211,13 @@ Each step builds with the founder's per-step go-ahead; 1–2 are the foundation,
   (seeded, editable: 100/300 min, €10→250, €19 line, €9 seat, €0.50 kickback, ES_EU_LANDLINE),
   `vo_lines`, `vo_seats`, `vo_account_minutes`, `vo_minute_ledger` (append-only, idempotent on
   `zadarma_call_id`). RLS mirrors `virtual_office_subscriber_compliance`. No Zadarma/Stripe/edge code touched.
-- ⬜ Next (no Zadarma needed): Stripe-side sweep scaffolding (overage one-off + line/seat recurring via
-  application_fee_percent). Then provisioning + usage-metering once the Zadarma SANDBOX key/secret are added.
+- ✅ **AI doc pre-check BUILT & verified 2026-06-24** (commit 89c8b3ec): `kyc-ai-precheck` edge fn
+  (Claude `claude-haiku-4-5-20251001` vision, non-fatal) + `ai_doc_check`/`ai_precheck_status` columns on
+  compliance. Live test against the real test subscriber correctly FLAGGED the uploaded files as
+  screenshots (not KYC docs) with per-slot reasons — gate working, result persisted. `ANTHROPIC_API_KEY` set.
+- ⬜ Next: **Zadarma provisioning orchestrator** (doc group → upload → validate → order number → route →
+  activate → vo_lines + grant minutes), sandbox-first — needs `ZADARMA_API_KEY`/`_SECRET`. Then usage-metering
+  webhook, then the Stripe overage sweep, then corporate +line/+seat.
 
 **Still pending before build:** Zadarma SANDBOX api key/secret; accountant sign-off (payment-time invoicing +
 the NET sweep / IVA retention — founder says treat as signed-off, confirming in parallel).
