@@ -250,10 +250,19 @@ Each step builds with the founder's per-step go-ahead; 1–2 are the foundation,
   rejects screenshot docs ("Personal data is not appropriate"). **Full happy-path (real docs → verified=true →
   order success → activate) only confirmable in a controlled PRODUCTION test at go-live** (sandbox never verifies).
   SINGLE-LINE PROVISIONING = mechanically complete + correctly gated.
-- ⬜ Remaining Phase-2: (a) hub→direction_id config mapping (currently Granada hardcoded) + the real
-  customer-address into the doc group; (b) usage-metering webhook (PBX call events → vo_minute_ledger decrement +
-  balance, suspend at 0); (c) Stripe overage sweep (€10+IVA tripwire, operator-MoR + Medacrii net sweep);
-  (d) corporate +line/+seat; (e) wire provisioning to auto-run after AI-precheck passes + subscriber activation/email.
+- ✅ **Usage-metering webhook BUILT & sandbox-proven 2026-06-24** (`zadarma-call-webhook`, verify_jwt=false).
+  GET `zd_echo` handshake echoes token; POST verifies `Signature` = base64(hex(hmac_sha1(pbx_call_id +
+  md5(raw_body), API_SECRET))). Meters NOTIFY_OUT_END only (inbound NOTIFY_END logged, not billed). minutes =
+  ceil(sec/60); decrement vo_account_minutes + vo_minute_ledger 'call_usage'; idempotent via unique index on
+  zadarma_call_id; balance<=0 → needs_topup=true (no charge here). Schema added: vo_lines.zadarma_sip_id (+
+  provisioning persists it on set_sip_id), vo_account_minutes.needs_topup + suspended_at. **GO-LIVE FLAGS:**
+  (a) signature test was SELF-signed — confirm scheme + per-event field names against REAL Zadarma PBX traffic;
+  (b) balance floors at 0 while ledger records full over-run → fix in overage build (allow negative balance so
+  balance=Σledger; top-up clears debt; bound with destination guardrails later).
+- ⬜ Remaining Phase-2: (a) Stripe overage sweep (€10+IVA tripwire, operator-MoR direct charge + Medacrii NET
+  app-fee sweep keeping €0.50 kickback + IVA with operator; off_session PaymentIntent; hard-cut on fail);
+  (b) hub→direction_id config + real customer-address into doc group; (c) corporate +line/+seat; (d) wire
+  provisioning to auto-run after AI-precheck + subscriber activation/email; (e) destination guardrails + per-call caps.
 
 **Still pending before build:** Zadarma SANDBOX api key/secret; accountant sign-off (payment-time invoicing +
 the NET sweep / IVA retention — founder says treat as signed-off, confirming in parallel).
