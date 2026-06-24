@@ -149,3 +149,62 @@ pay, CUT their service immediately (no buffer), mirroring how Zadarma cuts off o
 **Compliance/UX:** variable off-session charges need a clear **usage-billing mandate disclosed at signup** +
 advance notice (the 48h satisfies this) — fold into the consent step. (Stripe off-session PaymentIntent on the
 saved PM; SCA/mandate considerations apply.)
+
+## 9. Usage billing — ADOPTED model (prepaid "tripwire" top-up) + corrections (2026-06-24)
+Supersedes the threshold-recovery sketch in §8. Founder + architect aligned on a **prepaid top-up** model
+(better cash-flow — customer pays before minutes are used; Flentix never fronts).
+
+**Packages (founder to finalise exact minutes):** Inbound = FREE (€0/min to us). Growth = ~100 outbound min;
+Premium = ~300 outbound min — **outbound, to the STANDARD destination set only** (Spain/EU national landlines,
+~€0.015/min wholesale). Monthly counter resets on the billing anniversary.
+
+**Tripwire top-up:** at 0 minutes → pause the outbound trunk (Zadarma API) → off-session **€10 + 21% IVA**
+charge on the **operator's connected account** (card-on-file) → on success webhook, credit **250 outbound
+minutes**. A small internal buffer (~€5 worth) absorbs in-flight-call overrun before the charge clears.
+Fail-branch: outbound stays hard-blocked (inbound stays free/active), dashboard alert "update billing to
+reactivate". Auto-top-up is a per-customer toggle (off = manual top-up; cut at zero either way — no grace).
+
+**Money routing (operator MoR + Medacrii sweep) — CORRECTED:**
+- Charge is a one-off PaymentIntent on the **operator's connected account** (operator = MoR; valid to use
+  `application_fee_amount` on one-off PaymentIntents).
+- Medacrii sweeps its margin via `application_fee_amount` computed on the **NET (ex-IVA)** — **NEVER sweep the
+  IVA**: the operator must RETAIN the €2.10 IVA to remit to Hacienda. Operator keeps IVA + the optional €0.50
+  kickback; **Medacrii absorbs the Stripe processing fee** (not the operator). Keep the €0.50 kickback ON for
+  economic substance (operator must not be left at literal €0 / paying VAT on swept revenue). Accountant to
+  bless the sweep + note Medacrii-supplies-telecom-wholesale in the operator agreement/DPA.
+
+**Destination guardrails (loss prevention):** allowances + €10 blocks apply ONLY to the standard cheap zone
+(Spain/EU landlines). Block high-cost international + premium-mobile routes by default on standard tiers via the
+Zadarma trunk config (`PUT /v1/pbx/`) — prevents toll fraud and per-block losses (a 250-min block to mobiles
+could cost far more than €3.75). Per-destination rates/opt-in only if a customer needs those routes.
+
+## 10. Corporate accounts — multi-line & multi-seat (founder priority; design now, build after core)
+Two distinct concepts (keep separate):
+- **A. Internal extensions (multi-USER):** team seats sharing ONE geographic number (Ext 101/102) via
+  `POST /v1/pbx/internal/` (free from Zadarma). Upsell a flat **per-seat monthly fee** (operator Connect +
+  Medacrii app-fee sweep). Inbound routes via the future AI receptionist to extensions.
+- **B. Additional geographic lines (multi-NUMBER):** separate DIDs (CEO direct, Barcelona branch). "+ Add Line"
+  → recurring **€15–20/mo + IVA** (operator Connect + sweep; ~€2/mo wholesale) → on success, auto-run the
+  Zadarma provisioning loop to order + attach the number to that account.
+  - ⚠️ **Each additional geographic line carries its OWN per-zone KYC + in-zone address requirement** (the moat
+    is per-number). "+ Add Line" only offers zones we + Zadarma cover; each new line gets its own document
+    validation. A Barcelona line needs a Barcelona-zone address.
+
+**Data model — design for 1:N NOW (avoid a rebuild), even though v1 ships single-line:**
+- `vo_lines` — one row per DID/number: subscriber_id, zadarma_number, zone/hub, status, its own compliance refs,
+  recurring price. (The current per-subscriber compliance becomes per-LINE.)
+- `vo_seats` — one row per user/extension: subscriber_id, extension, name, login, seat price.
+- A `virtual_office_subscribers` row → many `vo_lines` and many `vo_seats`.
+
+## 11. Build sequence (founder-agreed strategy 2026-06-24)
+1. **Core single-line provisioning** (Zadarma sandbox) — schema modelled for 1:N from day one.
+2. **Usage / tripwire billing** (minutes ledger, €10+IVA top-up via operator Connect + Medacrii NET sweep,
+   destination guardrails, hard-cut, auto-top-up toggle).
+3. **Corporate multi-line + multi-seat** (extensions + additional geographic lines, recurring billing).
+4. **In-browser WebRTC dialer** (embed Zadarma WebRTC + 72h key via `GET /v1/webrtc/get_key/`; SIP-creds
+   fallback for power users) — its own sizable workstream.
+5. **AI receptionist** (call screening/routing) — separate.
+Each step builds with the founder's per-step go-ahead; 1–2 are the foundation, 3–5 layer on.
+
+**Still pending before build:** Zadarma SANDBOX api key/secret; accountant sign-off (payment-time invoicing +
+the NET sweep / IVA retention); founder's final free-minute numbers + the €/extra-line + €/seat prices.
