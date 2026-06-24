@@ -206,6 +206,14 @@ Two distinct concepts (keep separate):
 5. **AI receptionist** (call screening/routing) — separate.
 Each step builds with the founder's per-step go-ahead; 1–2 are the foundation, 3–5 layer on.
 
+**BUILD PROGRESS:**
+- ✅ **Step 1 — data-model foundation BUILT & verified 2026-06-24** (commit 1d90e4bf): `telephony_config`
+  (seeded, editable: 100/300 min, €10→250, €19 line, €9 seat, €0.50 kickback, ES_EU_LANDLINE),
+  `vo_lines`, `vo_seats`, `vo_account_minutes`, `vo_minute_ledger` (append-only, idempotent on
+  `zadarma_call_id`). RLS mirrors `virtual_office_subscriber_compliance`. No Zadarma/Stripe/edge code touched.
+- ⬜ Next (no Zadarma needed): Stripe-side sweep scaffolding (overage one-off + line/seat recurring via
+  application_fee_percent). Then provisioning + usage-metering once the Zadarma SANDBOX key/secret are added.
+
 **Still pending before build:** Zadarma SANDBOX api key/secret; accountant sign-off (payment-time invoicing +
 the NET sweep / IVA retention — founder says treat as signed-off, confirming in parallel).
 
