@@ -225,7 +225,10 @@ Each step builds with the founder's per-step go-ahead; 1–2 are the foundation,
   **Launch-city DIRECTION_IDs (standard tier, €3.40/mo wholesale, €0 connect; silver €4/€30, gold €6/€70):**
   Granada=16741 (area 858), Málaga=16593 (95), Sevilla=16617 (854), Madrid=16284 (91), Barcelona=16285 (93),
   Valencia=16287 (96). **NOT on Zadarma: Marbella** (use Málaga area-95 to cover Costa del Sol, or alt provider)
-  **& Santander** (no Zadarma Cantabria DID at all). 159 ES destinations total. ⚠️ IDs from SANDBOX — re-confirm
+  **& Santander** (no Zadarma Cantabria DID at all). 159 ES destinations total.
+  **FOUNDER DECISION 2026-06-24:** launch map = the 6 confirmed cities. Marbella + Santander DROPPED from
+  day-one (Marbella likely covered by Málaga's 95 prefix anyway). Founder will map the real geographic coverage
+  of each prefix after the base offices are set up, then decide if any extra zones can be served. ⚠️ IDs from SANDBOX — re-confirm
   against production at go-live (catalog should match). **MOAT LINK:** a geographic number needs an in-zone
   ADDRESS — each launch city must have a matching Flentix hub/address, and we store its DIRECTION_ID on the
   hub/zone so provisioning + "only offer where we can deliver" both work.
