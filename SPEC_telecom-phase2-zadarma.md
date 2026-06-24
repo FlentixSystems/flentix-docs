@@ -207,4 +207,35 @@ Two distinct concepts (keep separate):
 Each step builds with the founder's per-step go-ahead; 1–2 are the foundation, 3–5 layer on.
 
 **Still pending before build:** Zadarma SANDBOX api key/secret; accountant sign-off (payment-time invoicing +
-the NET sweep / IVA retention); founder's final free-minute numbers + the €/extra-line + €/seat prices.
+the NET sweep / IVA retention — founder says treat as signed-off, confirming in parallel).
+
+## 12. Definitive pricing & limits (founder matrix 2026-06-24) + flags
+| Item | Growth (Tier 2) | Premium (Tier 3) | Extra line | Extra seat |
+|---|---|---|---|---|
+| Retail (monthly, +IVA) | **€69 ⚠️ see flag** | €119 | €19/mo | €9/mo |
+| Included outbound mins | 100 | 300 | uses parent bundle | shares parent bundle |
+| Inbound | free unlimited | free unlimited | free | free |
+| Overage block | €10+IVA → 250 mins | €10+IVA → 250 mins | same tripwire | same tripwire |
+| Our wholesale | ~€2 line + ~€1.50 mins | ~€2 line + ~€4.50 mins | ~€2/mo | €0/mo |
+
+**DB init constants (seed once Growth confirmed):** `tier_2_included_minutes=100`, `tier_3_included_minutes=300`,
+`overage_recharge_price=10.00`, `overage_recharge_minutes=250`, `add_line_subscription_price=19.00`,
+`add_seat_subscription_price=9.00`. Standard cheap-zone (Spain/EU landline) only; block costly routes.
+
+**FLAGS to resolve before seeding:**
+1. 🔴 **Growth price conflict:** matrix says €89, but the LIVE seeded recommendation is **€69** (Premium €119
+   matches). Confirm €69 (keep) vs €89 (deliberate reprice) before any change — it flows into checkout.
+2. 🟠 **App-fee mechanism by charge type:** €10 overage = one-off → `application_fee_amount` ✅. €19 line + €9
+   seat = **monthly subscriptions → `application_fee_percent` (first invoice) + `application_fee_amount` on
+   renewal invoices via webhook** (NEVER `application_fee_amount` in `subscription_data`). Per NOTE_FOR_ARCHITECT.
+3. 🟠 **Telephony pricing is PLATFORM-level (Medacrii), not operator-adjustable** (it's swept to Medacrii).
+   Store €10/€19/€9 + bundles in platform config, NOT the operator recommend/override tables.
+- Note: "AI Executive" (Premium) promises AI call-handling that is a LATER build; at launch the tier delivers
+  the geographic number + SIP/Zoiper line. Positioning only.
+
+## 13. Phase-2 launch scope (founder-confirmed 2026-06-24) — dialer decoupled
+For the **mid-July launch**, Phase 2 = **core provisioning + Stripe Connect sweep + tripwire overage ledger**,
+with the **SIP-credentials display in the dashboard** as the day-one calling interface (clients use Zoiper etc.).
+The **WebRTC in-browser dialer is decoupled** to a later phase (does NOT gate launch). Build sequence §11 stands;
+the dialer is step 4 (post-launch). Founder has authorised building (accountant confirm in parallel); Zadarma
+sandbox keys to be added when the provisioning build needs them.
