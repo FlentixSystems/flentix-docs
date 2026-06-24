@@ -27,7 +27,13 @@ https://zadarma.com/en/support/api/ , https://zadarma.com/en/support/instruction
    legal KYC — **Zadarma performs the binding regulatory verification**. Goal: reduce Zadarma rejection round-trips.
 4. **Sandbox first** (`USE_SANDBOX=true`); live Zadarma keys only at go-live.
 5. **AI receptionist / AI call handling is coming** (part of the Premium value prop) — designed separately;
-   this spec must not preclude it (the SIP/PBX routing step is where it will later attach).
+   this spec must not preclude it (the SIP/PBX routing step is where it will later attach, via Zadarma's
+   real PBX webhook `/v1/pbx/webhooks/url/` — the confirmed call-event webhook).
+6. **Fully automated, no human bottleneck (founder rule).** The whole Premium provisioning runs end-to-end
+   with NO admin click on the happy path: pay → AI doc-check → auto-submit to Zadarma → auto-validate →
+   auto-order number → auto-route → auto-activate → email. A human admin is pulled in ONLY on a genuine
+   exception Zadarma flags that the system can't auto-resolve. A doc rejection auto-emails the customer to
+   re-upload (no human). No artificial "admin Activate" gate, and no separate client card-verification detour.
 
 ## 2. End-to-end flow (Premium)
 1. **Offer-time availability pre-check (storefront).** When Premium is shown for a hub, confirm Zadarma has
@@ -43,20 +49,28 @@ https://zadarma.com/en/support/api/ , https://zadarma.com/en/support/instruction
    type (passport / company_registry / proof_of_address …)? Store the classification + confidence on
    `virtual_office_subscriber_compliance`. If a clear mismatch/illegible → reject that slot immediately with a
    friendly message and let them re-upload (no Zadarma call yet). Borderline → allow through (Zadarma decides).
-5. **Provisioning (NEW edge function, on admin activate OR auto after AI-check passes — TBD step 6):**
+5. **Provisioning — AUTO, no admin click.** A backend orchestrator edge function (adapt
+   `confirm-telecom-activation` or new `provision-zadarma-number`) fires automatically once the AI doc-check
+   passes:
    a. `POST /v1/documents/groups/create/` → create a Zadarma document group.
-   b. `POST /v1/documents/upload/` → upload the stored KYC docs to that group.
-   c. `GET /v1/documents/groups/valid/<ID>/` → validate for the Spanish destination.
-   d. `POST /v1/direct_numbers/order/` → order a geographic number in the hub's zone.
+   b. `POST /v1/documents/upload/` → upload the stored KYC docs **one file at a time**, looping sequentially;
+      record each returned Zadarma file-ID into the compliance JSONB (`ai_doc_check`/manifest mapping).
+   c. `GET /v1/documents/groups/valid/<ID>/` → validate for the Spanish destination. **Treat as synchronous**
+      (immediate pass/fail). If a destination turns out to require async operator review, use an **automated
+      scheduled re-check** (Supabase scheduled function) — NOT a human, NOT an assumed webhook. (No confirmed
+      Zadarma document-status webhook exists; do not design around one.)
+   d. `POST /v1/direct_numbers/order/` → order a geographic number in the hub's zone (map hub zone → `DIRECTION_ID`).
    e. `PUT /v1/direct_numbers/set_sip_id/` → route the number to the PBX/SIP (later: to the AI receptionist).
-   f. On success: set `assigned_geographic_number_id`, store the Zadarma number + doc-group ids, flip the
-      subscriber to `active`, send the activation email (number + portal link).
-6. **Failure branch — Zadarma rejects the documents** (validate fails): set `kyc_status='rejected'`, notify the
-   customer, reuse **"resend KYC link"** so they re-upload. If the order ultimately cannot be fulfilled →
-   **credit note + Stripe refund**, subscriber → cancelled.
-7. **Card-on-file (Phase-2 SetupIntent)** for FUTURE metered call-usage billing — keep as a `SetupIntent`
-   (verification, NOT a second charge; consistent with single-charge Premium). Decide timing: capture at/after
-   activation. Usage billing itself is future/out of scope.
+   f. On success: set `assigned_geographic_number_id` + Zadarma number/doc-group ids, flip subscriber to
+      `active`, send the activation email.
+6. **Failure branch — auto first, human only if unresolvable.** Zadarma validate fails → `kyc_status='rejected'`,
+   **auto-email** the customer + reuse "resend KYC link" (no human). If genuinely unfulfillable →
+   **credit note + Stripe refund**, subscriber → cancelled. Escalate to an admin ONLY when Zadarma flags
+   something the system can't auto-handle.
+7. **Card-on-file for future usage — reuse the subscription's payment method, no separate detour.** The
+   subscription already has the customer's payment method on file (Stripe), so we do NOT need a separate
+   Phase-2 SetupIntent round-trip (`send-phase2-activation-link` / `ActivatePhone`) — those client steps are
+   RETIRED. Future metered call-usage billing reuses the existing subscription PM. (Usage billing itself = future.)
 
 ## 3. Data
 - Reuse `virtual_office_subscriber_compliance`: `assigned_geographic_number_id` (already exists) + add
@@ -66,7 +80,8 @@ https://zadarma.com/en/support/api/ , https://zadarma.com/en/support/instruction
 
 ## 4. Secrets / config
 - `ZADARMA_API_KEY`, `ZADARMA_API_SECRET` (added by Grant; sandbox values first), `ZADARMA_USE_SANDBOX=true`.
-- AI doc-check: the model/key for the vision classifier (e.g. Claude). 
+- AI doc-check: **Claude Haiku 4.5** (current, vision-capable, fast, <1¢/check) — NOT the outdated 3.5 Sonnet;
+  keep a single provider (Claude), don't add OpenAI. `ANTHROPIC_API_KEY`.
 - Per-hub fiscal identity (for the payment-time Factura) — go-live blocker.
 
 ## 5. Out of scope (separate work)
@@ -76,10 +91,28 @@ https://zadarma.com/en/support/api/ , https://zadarma.com/en/support/instruction
 - Non-Spain geographic provisioning (per-country, later).
 
 ## 6. Open items for the build
-1. Confirm with the accountant: Factura at **payment** vs activation; credit-note/refund on failed verification.
-2. Confirm whether provisioning auto-runs after the AI pre-check passes, or waits for an admin "Activate" click
-   (recommend: auto-attempt Zadarma validate+order after AI pre-check passes; admin only intervenes on failure).
-3. Confirm the vision-LLM choice + cost for the AI doc pre-check.
-4. Map the hub's zone → Zadarma `DIRECTION_ID` for the availability pre-check + number order.
-5. Reconcile the existing stub functions (`create-telecom-setup-intent`, `send-phase2-activation-link`,
-   `confirm-telecom-activation`, `ActivatePhone`) — keep/repurpose vs replace.
+1. **Accountant sign-off (go-live gate, NOT a build blocker):** build assuming Factura at **payment** +
+   credit-note/refund on failed verification (founder-confirmed). Lawyer/accountant confirms before LIVE
+   (Spanish IVA + operator-as-MoR specifics).
+2. ~~auto-run vs admin click~~ **RESOLVED: AUTO-RUN** — provisioning fires automatically after the AI pre-check
+   passes; admin only on a genuine Zadarma exception (founder rule §1.6).
+3. ~~vision-LLM choice~~ **RESOLVED: Claude Haiku 4.5** (single-provider).
+4. Map the hub's zone → Zadarma `DIRECTION_ID` for the availability pre-check + number order (build step).
+5. **Stub reconciliation (corrected):** the orchestration is a BACKEND edge function — adapt
+   `confirm-telecom-activation` (or new `provision-zadarma-number`). The client-facing Phase-2 detour
+   (`send-phase2-activation-link` + `ActivatePhone` page + `create-telecom-setup-intent`) is **RETIRED** —
+   no separate card-verification round-trip (reuse the subscription payment method).
+6. **Verify with Zadarma:** is document validation synchronous, or is there an async review per destination?
+   (Design synchronous-first + automated scheduled re-check fallback; no document-status webhook is assumed.)
+
+## 7. Architect feedback (Gemini) — evaluated 2026-06-24
+- **Doc-verification webhook:** principle (event-driven, no human) ✅ adopted; but the specific claim is
+  **rejected** — Zadarma's webhooks are call/PBX events, no confirmed document-status webhook. Validate is
+  synchronous-first; automated poll only if a destination needs async review. The real PBX webhook is reserved
+  for the future AI receptionist.
+- **Sequential multi-file upload + per-file ID mapping:** ✅ adopted (§2.5b).
+- **Adapt-not-delete stubs:** ✅ adopted, corrected — orchestration is backend (not the `ActivatePhone` page),
+  and the client card detour is retired (no bottleneck).
+- **Payment-time invoicing:** ✅ build on it; accountant = go-live gate.
+- **Auto-run:** ✅ adopted as the backbone (§1.6).
+- **Vision LLM:** ✅ adopted, model updated to Claude Haiku 4.5 (3.5 Sonnet is outdated; single provider).
