@@ -219,9 +219,18 @@ Each step builds with the founder's per-step go-ahead; 1–2 are the foundation,
   BOTH sandbox + production (200, balance €50.40). **Same keys work for both** (no separate sandbox keys) — flag
   toggles host. **Signature gotcha fixed:** Zadarma = `base64(HEX(hmac_sha1(...)))` (PHP hash_hmac default-hex),
   NOT base64 of raw bytes (was 28 chars, must be ~56). Shared auth helper (md5 + hmac-hex-base64) for reuse.
-- ⬜ Next: **number availability lookup** (read-only: `/v1/direct_numbers/countries/` + `/available/`) to map the
-  hub's zone → Zadarma `DIRECTION_ID` and confirm Granada/+34 958 coverage. Then doc group/upload/validate, then
-  order/route/activate + grant minutes. Then usage-metering webhook, Stripe overage sweep, corporate +line/+seat.
+- ✅ **Number availability + launch-zone map confirmed 2026-06-24** (`zadarma-numbers`). Correct Zadarma flow:
+  `/v1/direct_numbers/countries/` (ISO) → `/v1/direct_numbers/country/?country=ES` (destinations w/ DIRECTION_ID,
+  areaCode, monthly_fee, KYC restrictions) → `/v1/direct_numbers/available/<DIRECTION_ID>/` (orderable numbers).
+  **Launch-city DIRECTION_IDs (standard tier, €3.40/mo wholesale, €0 connect; silver €4/€30, gold €6/€70):**
+  Granada=16741 (area 858), Málaga=16593 (95), Sevilla=16617 (854), Madrid=16284 (91), Barcelona=16285 (93),
+  Valencia=16287 (96). **NOT on Zadarma: Marbella** (use Málaga area-95 to cover Costa del Sol, or alt provider)
+  **& Santander** (no Zadarma Cantabria DID at all). 159 ES destinations total. ⚠️ IDs from SANDBOX — re-confirm
+  against production at go-live (catalog should match). **MOAT LINK:** a geographic number needs an in-zone
+  ADDRESS — each launch city must have a matching Flentix hub/address, and we store its DIRECTION_ID on the
+  hub/zone so provisioning + "only offer where we can deliver" both work.
+- ⬜ Next: doc group/upload/validate → order/route/activate + grant minutes. Then usage-metering webhook,
+  Stripe overage sweep, corporate +line/+seat.
 
 **Still pending before build:** Zadarma SANDBOX api key/secret; accountant sign-off (payment-time invoicing +
 the NET sweep / IVA retention — founder says treat as signed-off, confirming in parallel).
