@@ -259,10 +259,23 @@ Each step builds with the founder's per-step go-ahead; 1–2 are the foundation,
   (a) signature test was SELF-signed — confirm scheme + per-event field names against REAL Zadarma PBX traffic;
   (b) balance floors at 0 while ledger records full over-run → fix in overage build (allow negative balance so
   balance=Σledger; top-up clears debt; bound with destination guardrails later).
-- ⬜ Remaining Phase-2: (a) Stripe overage sweep (€10+IVA tripwire, operator-MoR direct charge + Medacrii NET
-  app-fee sweep keeping €0.50 kickback + IVA with operator; off_session PaymentIntent; hard-cut on fail);
-  (b) hub→direction_id config + real customer-address into doc group; (c) corporate +line/+seat; (d) wire
-  provisioning to auto-run after AI-precheck + subscriber activation/email; (e) destination guardrails + per-call caps.
+- ✅ **Overage sweep (prepaid tripwire) BUILT & test-mode-proven 2026-06-24** (`vo-overage-topup`). Off-session
+  PaymentIntent ON the operator connected account; amounts from telephony_config, IVA rate from countries_config
+  (NOT hardcoded): net 1000 + IVA 210 = €12.10 charged, application_fee_amount 950 (= net − €0.50 kickback, IVA
+  excluded), operator keeps 260 (kickback + IVA). Proven: real test charge succeeded on the saved card
+  (subscription.default_payment_method, visa 4242) → balance +250, needs_topup cleared, app fee 950 confirmed on
+  platform. Metering webhook fixed (no floor; balance can go negative = Σledger) + fire-and-forget triggers the
+  sweep on the needs_topup false→true flip. **SECURITY:** initial build had an auth-bypass (accepted a forged
+  unsigned JWT claiming role=service_role) — FIXED to a constant-time exact match on SUPABASE_SERVICE_ROLE_KEY
+  (forged tokens → 401). **GO-LIVE FLAGS:** (a) failure/decline path is DESIGNED not tested — run a Stripe decline
+  test card before go-live; (b) **off-session SCA/mandate** — confirm overage charges succeed on REAL Spanish/EU
+  cards (the subscription mandate should cover the saved card, but EU off-session charges can fail
+  authentication_required — verify); (c) **hard-cut on fail is a TODO** — Zadarma has no per-SIP outbound-disable
+  endpoint; suspended_at is set in DB but outbound isn't actually blocked (need PBX route mutation / forwarding
+  removal) so a non-paying customer can still call; (d) failed-topup "update your card" Brevo email not wired.
+- ⬜ Remaining Phase-2: (a) hub→direction_id config + real customer-address into doc group; (b) corporate
+  +line/+seat; (c) wire provisioning to auto-run after AI-precheck + subscriber activation/email; (d) destination
+  guardrails + per-call caps; (e) the overage go-live flags above (decline test, SCA, hard-cut, failed email).
 
 **Still pending before build:** Zadarma SANDBOX api key/secret; accountant sign-off (payment-time invoicing +
 the NET sweep / IVA retention — founder says treat as signed-off, confirming in parallel).
