@@ -215,9 +215,13 @@ Each step builds with the founder's per-step go-ahead; 1–2 are the foundation,
   (Claude `claude-haiku-4-5-20251001` vision, non-fatal) + `ai_doc_check`/`ai_precheck_status` columns on
   compliance. Live test against the real test subscriber correctly FLAGGED the uploaded files as
   screenshots (not KYC docs) with per-slot reasons — gate working, result persisted. `ANTHROPIC_API_KEY` set.
-- ⬜ Next: **Zadarma provisioning orchestrator** (doc group → upload → validate → order number → route →
-  activate → vo_lines + grant minutes), sandbox-first — needs `ZADARMA_API_KEY`/`_SECRET`. Then usage-metering
-  webhook, then the Stripe overage sweep, then corporate +line/+seat.
+- ✅ **Zadarma connectivity proven 2026-06-24** (commit 1c299f64): `zadarma-probe` authenticates against
+  BOTH sandbox + production (200, balance €50.40). **Same keys work for both** (no separate sandbox keys) — flag
+  toggles host. **Signature gotcha fixed:** Zadarma = `base64(HEX(hmac_sha1(...)))` (PHP hash_hmac default-hex),
+  NOT base64 of raw bytes (was 28 chars, must be ~56). Shared auth helper (md5 + hmac-hex-base64) for reuse.
+- ⬜ Next: **number availability lookup** (read-only: `/v1/direct_numbers/countries/` + `/available/`) to map the
+  hub's zone → Zadarma `DIRECTION_ID` and confirm Granada/+34 958 coverage. Then doc group/upload/validate, then
+  order/route/activate + grant minutes. Then usage-metering webhook, Stripe overage sweep, corporate +line/+seat.
 
 **Still pending before build:** Zadarma SANDBOX api key/secret; accountant sign-off (payment-time invoicing +
 the NET sweep / IVA retention — founder says treat as signed-off, confirming in parallel).
