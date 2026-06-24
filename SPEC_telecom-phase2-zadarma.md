@@ -273,9 +273,20 @@ Each step builds with the founder's per-step go-ahead; 1–2 are the foundation,
   authentication_required — verify); (c) **hard-cut on fail is a TODO** — Zadarma has no per-SIP outbound-disable
   endpoint; suspended_at is set in DB but outbound isn't actually blocked (need PBX route mutation / forwarding
   removal) so a non-paying customer can still call; (d) failed-topup "update your card" Brevo email not wired.
+- ✅ **Automatic journey WIRED & sandbox-proven 2026-06-24.** Hands-free chain: `submit-kyc-documents` →
+  (EdgeRuntime.waitUntil) `kyc-ai-precheck` → on status 'passed' + phone tier (premium always; growth iff
+  engine_metadata.phone_optional) → fire-and-forget `zadarma-provision` (NO force_order) → on real order success
+  (step 13) → existing `activate-virtual-office-subscriber` (→ process-activation-job → welcome email), idempotent.
+  Idempotency guards: skip if line already active w/ number, or in-flight (pending_provision + doc group, updated
+  <5 min, not rejected). New `vo_lines.provisioning_status` (pending_validation / zadarma_docs_rejected /
+  provisioned) for admin visibility. Test: precheck correctly returned 'flagged' for screenshot docs → provision
+  did NOT auto-fire; manual provision halted at gate (pending_validation, subscriber NOT activated, no email);
+  idempotent re-run; success→activation verified by code trace (sandbox can't reach a real verify).
+  **FOLLOW-UP:** a 'flagged'/'zadarma_docs_rejected' customer is currently silent — wire a "re-upload your
+  documents" notification (admin can already manually invoke zadarma-provision to override a false flag).
 - ⬜ Remaining Phase-2: (a) hub→direction_id config + real customer-address into doc group; (b) corporate
-  +line/+seat; (c) wire provisioning to auto-run after AI-precheck + subscriber activation/email; (d) destination
-  guardrails + per-call caps; (e) the overage go-live flags above (decline test, SCA, hard-cut, failed email).
+  +line/+seat; (c) destination guardrails + per-call caps; (d) flagged/rejected customer notification;
+  (e) the overage go-live flags above (decline test, SCA, hard-cut, failed email).
 
 **Still pending before build:** Zadarma SANDBOX api key/secret; accountant sign-off (payment-time invoicing +
 the NET sweep / IVA retention — founder says treat as signed-off, confirming in parallel).
