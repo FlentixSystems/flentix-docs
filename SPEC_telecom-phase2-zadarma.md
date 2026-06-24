@@ -241,8 +241,19 @@ Each step builds with the founder's per-step go-ahead; 1–2 are the foundation,
   (b) doc-group address MUST be the customer's REAL in-zone registered address (test used a placeholder) — drives
   Zadarma `is_address_match` (the moat); (c) sandbox `groups/create/` returns id 0 & never verifies → real
   "verified=true" + validation-gated auto-order can only be confirmed in a controlled PRODUCTION test at go-live.
-- ⬜ Next: order → route(set_sip_id) → activate vo_line + grant bundle minutes (gated on validation booleans;
-  sandbox test via force flag). Then usage-metering webhook, Stripe overage sweep, corporate +line/+seat.
+- ✅ **Order → route → activate → grant-minutes BUILT & sandbox-proven 2026-06-24** (`zadarma-provision`):
+  available-pick → `/v1/direct_numbers/order/` → `/v1/sip/` discover + `set_sip_id` (PUT, 200) → vo_lines active +
+  zadarma_number → grant bundle minutes (premium→300 into vo_account_minutes + vo_minute_ledger). 2 correctness
+  bugs caught + fixed: (1) Zadarma validate flags are STRINGS ("true"/"false") — added `isTrue()` normaliser so
+  the prod gate works; (2) activation+minutes were running even on a FAILED order — now strictly gated on
+  order status:success+number, else chain halts (vo_lines stays pending_provision). Sandbox order correctly
+  rejects screenshot docs ("Personal data is not appropriate"). **Full happy-path (real docs → verified=true →
+  order success → activate) only confirmable in a controlled PRODUCTION test at go-live** (sandbox never verifies).
+  SINGLE-LINE PROVISIONING = mechanically complete + correctly gated.
+- ⬜ Remaining Phase-2: (a) hub→direction_id config mapping (currently Granada hardcoded) + the real
+  customer-address into the doc group; (b) usage-metering webhook (PBX call events → vo_minute_ledger decrement +
+  balance, suspend at 0); (c) Stripe overage sweep (€10+IVA tripwire, operator-MoR + Medacrii net sweep);
+  (d) corporate +line/+seat; (e) wire provisioning to auto-run after AI-precheck passes + subscriber activation/email.
 
 **Still pending before build:** Zadarma SANDBOX api key/secret; accountant sign-off (payment-time invoicing +
 the NET sweep / IVA retention — founder says treat as signed-off, confirming in parallel).
