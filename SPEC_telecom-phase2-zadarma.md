@@ -232,8 +232,17 @@ Each step builds with the founder's per-step go-ahead; 1–2 are the foundation,
   against production at go-live (catalog should match). **MOAT LINK:** a geographic number needs an in-zone
   ADDRESS — each launch city must have a matching Flentix hub/address, and we store its DIRECTION_ID on the
   hub/zone so provisioning + "only offer where we can deliver" both work.
-- ⬜ Next: doc group/upload/validate → order/route/activate + grant minutes. Then usage-metering webhook,
-  Stripe overage sweep, corporate +line/+seat.
+- ✅ **Document pipeline proven in sandbox 2026-06-24** (`zadarma-provision`): requirements probe (no dedicated
+  endpoint — use `groups/valid/<id>/` → 4 booleans is_information_match/is_documents_uploaded/
+  is_documents_verified/is_address_match), `groups/create/`, multipart file `upload/` (×3 OK), `groups/valid/`,
+  + DB persist (vo_lines row, zadarma_doc_group_id, slot→file map). 2nd signing fix: Zadarma uses PHP RFC1738
+  (`+` for spaces) not `%20` — patched in `_shared/zadarma.ts`. **GO-LIVE FLAGS:** (a) confirm correct Zadarma
+  `document_type` enum for a Spanish geographic number (used passport/`certificate`/`receipt` as nearest fits);
+  (b) doc-group address MUST be the customer's REAL in-zone registered address (test used a placeholder) — drives
+  Zadarma `is_address_match` (the moat); (c) sandbox `groups/create/` returns id 0 & never verifies → real
+  "verified=true" + validation-gated auto-order can only be confirmed in a controlled PRODUCTION test at go-live.
+- ⬜ Next: order → route(set_sip_id) → activate vo_line + grant bundle minutes (gated on validation booleans;
+  sandbox test via force flag). Then usage-metering webhook, Stripe overage sweep, corporate +line/+seat.
 
 **Still pending before build:** Zadarma SANDBOX api key/secret; accountant sign-off (payment-time invoicing +
 the NET sweep / IVA retention — founder says treat as signed-off, confirming in parallel).
