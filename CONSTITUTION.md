@@ -1,7 +1,7 @@
 # 📜 FLENTIX CONSTITUTION v2.1
 
-**Version:** 2.2.0
-**Last Updated:** 2026-06-19
+**Version:** 2.3.0
+**Last Updated:** 2026-06-28
 **Status:** Active — Proof of Concept / Sprint Mode (pace set by Grant)
 **Core Ecosystem Role:** Upstream Master Blueprint (Flentix Systems)
 **Single source of truth.** Paste this as the first message in any new AI chat.
@@ -219,6 +219,14 @@ AI receptionist; dedicated Spanish DID; smart call routing; voicemail-to-email;
 10 extensions; 4 day passes + 4 meeting-room hours/month. Target: established
 companies wanting an elite image.
 
+> **Bring Your Own Number (BYON) — Tier 3 entry path (Spain).** Instead of a fresh
+> Spanish DID, a customer can **port in their existing geographic number** and keep
+> it. The operator's registered VO address satisfies Spain's requirement that a
+> geographic number's holder have an address in the matching region. Donor-side
+> blockers (debt, contract, mismatch) are the **client's** to resolve — we only
+> relay them. Full spec: [`NUMBER_PORTING_SCOPING.md`](NUMBER_PORTING_SCOPING.md).
+> UK is out of scope (no address rule there). Approved 2026-06-28.
+
 **KYC (all tiers, critical for Tier 3):** checkout includes ID/passport + address
 proof upload for Spanish telephony compliance.
 
@@ -239,7 +247,11 @@ until volume justifies; use Zadarma's native interface initially.
 4. Verify via SMS — `POST /v1/reseller/users/phones/prove_by_sms`
 5. Confirm phone — `POST /v1/reseller/users/phones/confirm`
 6. Transfer funds — `GET /v1/reseller/users/topup/`
-7. Purchase number — Virtual number API + `user_id`
+7. Provision the number — **(a)** buy a new DID via the Virtual Number API + `user_id`,
+   **or (b)** **port in (BYON)** the customer's existing geographic number (Spain). See
+   [`NUMBER_PORTING_SCOPING.md`](NUMBER_PORTING_SCOPING.md). Port-in is free but
+   semi-manual (fund 12 months, upload donor invoice + LOA via dealer API, then a port
+   request); on completion it rejoins the flow at step 8 unchanged.
 8. Create PBX — `POST /v1/pbx/create/`
 9. Add extensions — `POST /v1/pbx/internal/create/`
 10. Call routing — `POST /v1/pbx/ivr/scenario/create/`
@@ -275,6 +287,11 @@ signatures, swap implementation for Twilio/FreeSWITCH later.
 - **New chat onboarding:** always paste this Constitution first.
 
 ### Changelog
+- **v2.3.0 (2026-06-28):** **Bring Your Own Number (BYON)** approved — Spanish Tier 3
+  port-in path added (§7) as an additive branch on the Zadarma flow (§8 step 7);
+  registered VO address satisfies Spain's geographic-region requirement; donor-side
+  blockers are the client's to resolve (we relay only); UK parked. New spec doc
+  `NUMBER_PORTING_SCOPING.md`.
 - **v2.2.0 (2026-06-19):** billing **Model 1 confirmed** (end-users pay through
   Flentix; operator = MoR; wholesale-only model rejected); locked the
   `application_fee_amount` rule (one-off only, never in `subscription_data`);
