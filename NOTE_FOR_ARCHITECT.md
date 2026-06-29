@@ -9,6 +9,26 @@ about Stripe and tax that have appeared in generated blueprints, and (c) specifi
 the **agreed** implementation for the fixed per-tier platform fee. Read this before
 proposing or pasting any payment/tax changes.
 
+> ### Update 2026-06-23 (Flentix-native / de-TC) — read alongside the locked decisions
+> - **Money-path naming changed.** The whole platform was de-TC'd (no TC Hub
+>   legacy in code). Stripe metadata `brand` is now **`'FLENTIX'`** (was `'TCH'`);
+>   metadata keys are prefixed **`fx_`** (were `tc_hub_`); statement descriptor
+>   `'FLENTIX'`; reservation codes **`FLX-…`**. The webhook reads `brand:'FLENTIX'`.
+>   The default workspace `0fc40c16` is now "Flentix Systems" (slug `flentix`).
+>   The real TC Hub re-enters as a fresh onboarded hub (data) at migration — and
+>   the cutover webhook needs a **temporary dual-accept** for TC Hub's old
+>   `'TCH'`/`tc_hub_*`-tagged Stripe objects (GO_LIVE_CHECKLIST §A).
+> - **⚠️ Per-hub Factura fiscal identity is now an OPEN fiscal task.** TC Hub's
+>   hardcoded Spanish issuer identity (NIF `B19703941`, Almuñécar) was removed, so
+>   customer Facturas currently issue with a **blank seller NIF/address**. The
+>   customer Factura is issued by each **HUB's own Spanish legal entity** (per-hub)
+>   — store each hub's legal name / NIF / registered address on its `workspaces`
+>   row and pass it via `opts.seller` to `buildInvoicePdf` / `mintVoFactura`
+>   (default `DEFAULT_SELLER` is intentionally blank). **Medacrii (UK) remains the
+>   PLATFORM entity** that invoices the *operators* (the application-fee /
+>   reverse-charge B2B invoices), NOT the customer-Factura seller. Blocker logged
+>   in GO_LIVE_CHECKLIST §B.
+
 ---
 
 ## 0. LOCKED DECISIONS (confirmed by Grant, 2026-06-19)
@@ -48,9 +68,13 @@ These are settled. Do not reopen or contradict them in future blueprints.
    platform), and the telecom reseller VAT chain (Zadarma → Medacrii → operator →
    end-user) is satisfied by invoicing, not by a second charge.
 
-4. **Fee figures are PROVISIONAL.** €2 / €30 / €50 are placeholders. Grant is
-   researching the actual split (percentage vs fixed) before go-live — do not treat
-   them as final.
+4. ~~**Fee figures are PROVISIONAL.** €2 / €30 / €50 are placeholders.~~ **CONFIRMED
+   2026-06-27 (fixed €/tier, ex-IVA): Tier 1 €5 / Tier 2 €20 / Tier 3 €60**, on list
+   prices €35 / €65 / €129. The mechanism is unchanged (this §0.2 + §4 — `application_fee_percent`
+   on invoice #1, `application_fee_amount` on renewals; one-off overage uses
+   `application_fee_amount`). Detail in
+   [SPEC_ai-voice-receptionist.md](SPEC_ai-voice-receptionist.md) §1.4. Re-seed the §4
+   `FEE_CENTS` placeholders (`200/3000/5000`) to `500/2000/6000` when implementing.
 
 ---
 

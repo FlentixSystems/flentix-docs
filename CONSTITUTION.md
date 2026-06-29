@@ -1,10 +1,41 @@
 # 📜 FLENTIX CONSTITUTION v2.1
 
-**Version:** 2.2.0
-**Last Updated:** 2026-06-19
+**Version:** 2.3.0
+**Last Updated:** 2026-06-23
 **Status:** Active — Proof of Concept / Sprint Mode (pace set by Grant)
 **Core Ecosystem Role:** Upstream Master Blueprint (Flentix Systems)
 **Single source of truth.** Paste this as the first message in any new AI chat.
+
+> ### What changed in v2.3 (2026-06-23 — read this first)
+> - **The codebase is now FLENTIX-NATIVE — zero TC Hub legacy in code.** The
+>   "de-TC purge" landed: the default workspace (`0fc40c16…`) is renamed
+>   **"Flentix Systems" (slug `flentix`, emerald)**; the real TC Hub re-enters
+>   as a **fresh onboarded hub (data only)** at migration, like any hub. Money
+>   path renamed: Stripe `brand: 'FLENTIX'`, metadata keys `fx_*`, statement
+>   descriptor `FLENTIX`; reservation codes are now **`FLX-…`**. Proven
+>   end-to-end by live test bookings (FLX-1017/1018, paid, emerald emails,
+>   TTLock, live in admin).
+> - **Per-hub branding is now LIVE, not just a mandate (§1 white-label).**
+>   Emails (`supabase/functions/_shared/branding.ts`) and the web app
+>   (`src/components/HubThemeProvider.tsx` + `src/lib/hexToHsl.ts`) render each
+>   hub's logo / colours / name / reply-to from its `workspaces` row. The §2
+>   TC-Hub-orange drift is **RESOLVED**; per-hub colour is data-driven by domain.
+>   ✅ **Brand reconciled + aligned (2026-06-23):** canonical = **teal `#16C7B4`**
+>   primary / **emerald `#10B981`** success-only; the repo was aligned to it (tokens,
+>   marketing→tokens, unified `FlentixLogo`, TC-raster logo purged — P1–P3).
+> - **Admin restructured** — a dedicated **Overview** section (dashboard stats /
+>   revenue / mailroom / occupancy grid) separated from the clean operational
+>   sections, plus a tab-refocus auto-refetch fix.
+> - **⚠️ NEW go-live blocker — per-hub Factura fiscal identity.** Stripping TC
+>   Hub's hardcoded Spanish fiscal identity (NIF `B19703941`, Almuñécar) left
+>   the customer-Factura **seller NIF/address blank**. Each hub's real fiscal
+>   identity (legal name / NIF / registered address) must be stored on its
+>   workspace and printed on its Facturas — onboarded at migration. See
+>   `GO_LIVE_CHECKLIST.md`.
+> - **Live TC Hub migration (Plan B)** scheduled ~**Sunday 2026-06-28** (quiet
+>   window). Needs a **temporary dual-accept** in `stripe-webhook` so TC Hub's
+>   pre-existing `'TCH'`/`tc_hub_*`-tagged Stripe records still settle during
+>   cutover (their metadata can't be rewritten).
 
 > ### What changed in v2.1 (read this)
 > - **Entities corrected** — the legal/contracting entity is **Medacrii
@@ -58,22 +89,29 @@ strictly prohibited.
 
 ## 2. BRAND IDENTITY (FLENTIX SYSTEMS — CANONICAL)
 
-> ⚠️ **Implementation drift (2026-06-19):** the live sandbox base theme currently
-> uses a **Mediterranean "sunset" palette (orange/coral/golden) with
-> glassmorphism** — this is the **TC Hub tenant** look, **not** the Flentix
-> master brand. The canonical Flentix brand below stands; the sandbox base theme
-> must be **re-skinned to brand** before any Flentix-branded launch. Full brand
-> spec lives in `BRAND_GUIDELINES.md`.
+> ✅ **TC-Hub orange drift RESOLVED (2026-06-23):** the sunset/orange skin and all
+> hardcoded orange were purged in the de-TC pass. Per-hub colour is **data-driven**:
+> a hub's `workspaces.primary_color` themes its emails and web pages (by domain) via
+> `_shared/branding.ts` and `HubThemeProvider`. **⚠️ Brand primary still being
+> aligned:** the canonical brand accent is now **teal `#16C7B4`** (the Primary Colors
+> table below) with **emerald `#10B981` reserved for success states only** — but the
+> repo currently ships emerald as `--primary` and the marketing pages hardcode teal
+> off-token. Aligning the token + marketing pages to teal-primary is a tracked task.
+> The Drive **Brand System** README is the canonical brand source (it supersedes the
+> older `BRAND_GUIDELINES.md`).
 
-### Primary Colors
-| Color | Hex | Usage |
-|---|---|---|
-| Charcoal | #1F2937 | Primary text, dark backgrounds, logo |
-| Emerald | #10B981 | CTAs, links, success states, accents |
+### Primary Colors (current design system — teal-primary; supersedes the prior emerald-primary)
+| Token | Color | Hex | Usage |
+|---|---|---|---|
+| `--primary` | **Teal** | **#16C7B4** | **Brand accent** — CTAs, links, active states, tags |
+| `--foreground` | Charcoal | #1F2937 | Body text |
+| `--inverse` | Slate | #0B121A | Hero / CTA / footer dark bands |
+| `--background` | Cream | #FAF9F5 | Page canvas (white #FFFFFF cards) |
+| `--success` | Emerald | #10B981 | **Success / confirmed / paid states ONLY — NOT the brand accent** |
 
 ### Supporting Colors
-White #FFFFFF · Light Gray #F3F4F6 · Medium Gray #6B7280 ·
-Error Red #EF4444 · Warning Orange #F59E0B.
+Light Gray (`--muted`) #F3F4F6 · Medium Gray (`--muted-foreground`) #6B7280 ·
+Border #E5E7EB · Error Red #EF4444 · Warning Orange #F59E0B.
 
 ### Typography
 - Headings: **Montserrat** (600, 700).
@@ -88,14 +126,24 @@ Error Red #EF4444 · Warning Orange #F59E0B.
 ### CSS Implementation (default fallbacks — Flentix master)
 ```css
 :root {
-  --tenant-primary: #10B981;      /* Emerald — Flentix default */
-  --tenant-primary-dark: #059669;
+  --tenant-primary: #16C7B4;      /* Teal — Flentix brand accent */
+  --tenant-primary-dark: #0FAE9C;
+  --tenant-success: #10B981;      /* Emerald — success/paid states only */
   --tenant-radius: 4px;           /* geometric but approachable */
   --tenant-font-heading: 'Montserrat', sans-serif;
   --tenant-font-body: 'Open Sans', sans-serif;
 }
 ```
-Tenants (e.g. TC Hub) override `--tenant-*` to theme their own deployment.
+Tenants override `--tenant-*` / `--primary` to theme their own deployment (per-hub,
+by domain). **Hardcoding any brand hex in a component breaks white-label** — every
+surface must read the token.
+
+> ✅ **Repo aligned to this system (2026-06-23, commits 3727dd56 / f26a02a6 / d67b4bab):**
+> `src/index.css --primary` = teal `174 80% 43%` (#16C7B4), `--success` = emerald,
+> `--inverse` = slate, `--radius` = 4px; all marketing pages read `hsl(var(--primary))`
+> (so per-hub theming reaches them); the Flentix workspace row + email defaults are teal;
+> all logos are unified in `src/components/FlentixLogo.tsx` (tokenised F-mark) and the old
+> TC-Hub raster logo was purged. See the flentix-backlog memory (P1–P3).
 
 ---
 
@@ -275,6 +323,20 @@ signatures, swap implementation for Twilio/FreeSWITCH later.
 - **New chat onboarding:** always paste this Constitution first.
 
 ### Changelog
+- **v2.3.0 (2026-06-23):** **Flentix-native milestone.** De-TC purge — zero TC
+  Hub legacy in code; default workspace `0fc40c16` renamed → "Flentix Systems"
+  (slug `flentix`); money path `brand:'FLENTIX'` / `fx_*` keys / `FLX-` codes;
+  TC fiscal identity (NIF B19703941 / Almuñécar) scrubbed; auto-admin trigger
+  re-asserted clean. **Per-hub branding live** (emails via `_shared/branding.ts`;
+  web via `HubThemeProvider`+`hexToHsl`). **Admin Overview restructure** +
+  refocus refetch. Operator BCC removed from customer emails. §2 brand-drift
+  resolved. **Canonical brand corrected to teal #16C7B4 primary / emerald #10B981
+  success-only** (§2) **and the repo aligned to it** (P1 tokens, P2 marketing→tokens,
+  P3 unified `FlentixLogo` + TC-raster logo purge; commits 3727dd56/f26a02a6/d67b4bab).
+  NEW go-live
+  blocker logged: per-hub Factura fiscal identity (seller
+  NIF/address now blank). Plan B (live TC migration) set for ~Sunday with a
+  webhook dual-accept for TC Hub's legacy Stripe metadata. Verified e2e (FLX-1017/1018).
 - **v2.2.0 (2026-06-19):** billing **Model 1 confirmed** (end-users pay through
   Flentix; operator = MoR; wholesale-only model rejected); locked the
   `application_fee_amount` rule (one-off only, never in `subscription_data`);

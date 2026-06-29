@@ -9,7 +9,10 @@ See [NOTE_FOR_ARCHITECT.md](NOTE_FOR_ARCHITECT.md) (billing/tax facts) and
 
 ## A. Stripe Connect & payments (the money model)
 
-- [ ] **🔴 NEEDED NOW (blocks the whole VO flow) — register a Connect webhook endpoint.** Because
+- [x] **DONE (2026-06-24) — Connect webhook endpoint registered + `STRIPE_CONNECT_WEBHOOK_SECRET` set.**
+  Verified the secret is present in project secrets and the endpoint listens to connected-account
+  events. End-to-end test pending to confirm a real checkout creates the subscriber/email/admin row.
+- [ ] ~~register a Connect webhook endpoint~~ (kept for history) — Because
   VO checkout is a direct charge on the connected account, `checkout.session.completed` is a
   **Connect event** delivered only to a "Events on Connected accounts" endpoint. Without it, the
   webhook never fires → no subscriber/email/admin row (confirmed in the first test). Steps:
@@ -39,6 +42,12 @@ See [NOTE_FOR_ARCHITECT.md](NOTE_FOR_ARCHITECT.md) (billing/tax facts) and
   re-proposed the wrong form on 2026-06-21.)
 - [ ] **Swap test keys → live keys:** `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` /
   `VITE_SUPABASE_PUBLISHABLE_KEY` usage, and the **live webhook signing secret**.
+- [ ] **🔴 Plan B cutover (TC Hub migration, ~Sun 2026-06-28) — webhook dual-accept for legacy
+  Stripe metadata.** The platform was renamed Flentix-native (`brand:'FLENTIX'`, `fx_*` keys,
+  `FLX-` codes), but the LIVE TC Hub's existing Stripe objects permanently carry the OLD
+  `brand:'TCH'` / `tc_hub_*` metadata. During cutover, `stripe-webhook` must **temporarily accept
+  BOTH** old and new tags so TC Hub's in-flight checkouts + recurring `invoice.payment_succeeded`
+  cycles still settle; remove the shim once its legacy objects clear.
 - [ ] **Finalise the platform fee** — replace the PROVISIONAL `FEE_CENTS` (starter €2 /
   growth €30 / premium €50) and confirm the **annual policy** (currently `fee × 12`). Update in
   `create-virtual-office-checkout`.
@@ -58,6 +67,17 @@ See [NOTE_FOR_ARCHITECT.md](NOTE_FOR_ARCHITECT.md) (billing/tax facts) and
 
 ## B. System / data
 
+- [ ] **🔴 NEW BLOCKER (2026-06-23) — per-hub Factura fiscal identity.** The de-TC
+  purge removed TC Hub's hardcoded Spanish fiscal identity (NIF `B19703941`,
+  Almuñécar), so customer Facturas now issue with a **blank seller NIF /
+  registered address**. A Spanish Factura legally requires the issuer's NIF +
+  address. Add fiscal columns to `workspaces` (legal_name, nif, fiscal_address,
+  phone) and thread the hub's identity into `buildInvoicePdf`/`mintVoFactura`
+  via `opts.seller` (the `DEFAULT_SELLER` in `_shared/vo-invoice.ts` is
+  intentionally blank). Each hub's real fiscal data (TC Hub's included) is
+  onboarded at migration. **No hub can issue real Facturas until its fiscal
+  identity is set.**
+
 - [ ] **Persist `hub_id` on `virtual_office_subscribers`.** Checkout receives `hub_id` but the
   webhook does not store it, so KYC/compliance country resolution defaults to `'ES'`. Persist it
   (column or `engine_metadata`), then in `resolve-kyc-token` + `submit-kyc-documents` swap the
@@ -67,8 +87,9 @@ See [NOTE_FOR_ARCHITECT.md](NOTE_FOR_ARCHITECT.md) (billing/tax facts) and
 - [ ] **Storefront country dropdown** (when multi-country): must filter `countries_config.is_enabled = true`.
 - [ ] **Per-country VAT rates + registration** — accountant to confirm each country's rate and
   *who is VAT-registered where* before enabling it.
-- [ ] **Re-skin to canonical brand** (Emerald #10B981 + Charcoal #1F2937, Montserrat/Open Sans) —
-  sandbox currently uses the TC Hub sunset/orange skin.
+- [x] **Re-skin to canonical brand** — **DONE (2026-06-23, de-TC purge):** base theme is
+  emerald #10B981 / charcoal #1F2937; all hardcoded TC-Hub orange purged; per-hub colour is
+  data-driven by domain (`HubThemeProvider` + `workspaces.primary_color`).
 - [ ] **Tier display names** — decide final customer-facing names (current marketing names
   "Workspace Hybrid" / "AI Executive Suite" vs the tier labels Starter/Growth/Premium) and make
   them consistent across storefront, Stripe descriptions, portal and admin.
@@ -91,8 +112,10 @@ mailroom pending state, day-credit→bono→TTLock. These config items must be O
   "Access your portal" button uses it; defaults to `https://flentixsystems.com`).
 - [ ] **Automated KYC reminder** (optional) — currently only the manual admin "Resend KYC" exists.
   A scheduled function could nudge `kyc_submitted = false` subscribers after N days (cap ~2).
-- [ ] **Email re-brand:** the new VO emails use the current TC Hub orange; re-skin to emerald
-  with the app.
+- [x] **Email re-brand** — **DONE (2026-06-23):** per-hub email branding via
+  `_shared/branding.ts` (emerald default, hub colour/logo/name/reply-to from `workspaces`); no
+  TC-Hub orange remains in any email. Outstanding email polish (real hub logos, heading sizes) is
+  parked for the holistic design pass.
 
 ## C. Deferred features (do before selling them)
 

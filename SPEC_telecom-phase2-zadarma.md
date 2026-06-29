@@ -27,8 +27,10 @@ https://zadarma.com/en/support/api/ , https://zadarma.com/en/support/instruction
    legal KYC — **Zadarma performs the binding regulatory verification**. Goal: reduce Zadarma rejection round-trips.
 4. **Sandbox first** (`USE_SANDBOX=true`); live Zadarma keys only at go-live.
 5. **AI receptionist / AI call handling is coming** (part of the Premium value prop) — designed separately;
-   this spec must not preclude it (the SIP/PBX routing step is where it will later attach, via Zadarma's
-   real PBX webhook `/v1/pbx/webhooks/url/` — the confirmed call-event webhook).
+   this spec must not preclude it (the SIP/PBX routing step is where it will later attach). **NOW SPECIFIED:
+   see [SPEC_ai-voice-receptionist.md](SPEC_ai-voice-receptionist.md)** — the engine is a managed voice-AI
+   platform behind a swappable SIP boundary (NOT the call-event webhook, which carries no audio); the DID is
+   SIP-routed to the platform's EU endpoint.
 6. **Fully automated, no human bottleneck (founder rule).** The whole Premium provisioning runs end-to-end
    with NO admin click on the happy path: pay → AI doc-check → auto-submit to Zadarma → auto-validate →
    auto-order number → auto-route → auto-activate → email. A human admin is pulled in ONLY on a genuine
@@ -85,7 +87,7 @@ https://zadarma.com/en/support/api/ , https://zadarma.com/en/support/instruction
 - Per-hub fiscal identity (for the payment-time Factura) — go-live blocker.
 
 ## 5. Out of scope (separate work)
-- **AI receptionist / conversational call handling** (future; attaches at the SIP routing step).
+- **AI receptionist / conversational call handling** — now its own spec: [SPEC_ai-voice-receptionist.md](SPEC_ai-voice-receptionist.md) (attaches at the SIP routing step).
 - Metered call-usage billing (future; the card-on-file is the hook).
 - Live Zadarma keys (go-live).
 - Non-Spain geographic provisioning (per-country, later).
@@ -203,7 +205,7 @@ Two distinct concepts (keep separate):
 3. **Corporate multi-line + multi-seat** (extensions + additional geographic lines, recurring billing).
 4. **In-browser WebRTC dialer** (embed Zadarma WebRTC + 72h key via `GET /v1/webrtc/get_key/`; SIP-creds
    fallback for power users) — its own sizable workstream.
-5. **AI receptionist** (call screening/routing) — separate.
+5. **AI receptionist** (call screening/routing) — **now specified: [SPEC_ai-voice-receptionist.md](SPEC_ai-voice-receptionist.md)** (managed engine behind a swappable SIP boundary; T2+T3 launch, T3 concierge fast-follow).
 Each step builds with the founder's per-step go-ahead; 1–2 are the foundation, 3–5 layer on.
 
 **BUILD PROGRESS:**
@@ -294,7 +296,7 @@ the NET sweep / IVA retention — founder says treat as signed-off, confirming i
 ## 12. Definitive pricing & limits (founder matrix 2026-06-24) + flags
 | Item | Growth (Tier 2) | Premium (Tier 3) | Extra line | Extra seat |
 |---|---|---|---|---|
-| Retail (monthly, +IVA) | **€69 ⚠️ see flag** | €119 | €19/mo | €9/mo |
+| Retail (monthly, +IVA) | **€65** | **€129** | €19/mo | €9/mo |
 | Included outbound mins | 100 | 300 | uses parent bundle | shares parent bundle |
 | Inbound | free unlimited | free unlimited | free | free |
 | Overage block | €10+IVA → 250 mins | €10+IVA → 250 mins | same tripwire | same tripwire |
@@ -305,15 +307,20 @@ the NET sweep / IVA retention — founder says treat as signed-off, confirming i
 `add_seat_subscription_price=9.00`. Standard cheap-zone (Spain/EU landline) only; block costly routes.
 
 **FLAGS to resolve before seeding:**
-1. 🔴 **Growth price conflict:** matrix says €89, but the LIVE seeded recommendation is **€69** (Premium €119
-   matches). Confirm €69 (keep) vs €89 (deliberate reprice) before any change — it flows into checkout.
+1. ✅ **RESOLVED 2026-06-27:** founder locked go-to-market prices **T1 €35 / T2 €65 / T3 €129** (ex-IVA),
+   with Medacrii fees **€5 / €20 / €60**. Supersedes the earlier €69-vs-€89 question and the €119 Premium.
+   Full receptionist/tier economics (incl. AI-minute allowances + overage) in
+   [SPEC_ai-voice-receptionist.md](SPEC_ai-voice-receptionist.md) §1.4–1.5. Re-seed the recommendation rows
+   to the new figures before checkout uses them.
 2. 🟠 **App-fee mechanism by charge type:** €10 overage = one-off → `application_fee_amount` ✅. €19 line + €9
    seat = **monthly subscriptions → `application_fee_percent` (first invoice) + `application_fee_amount` on
    renewal invoices via webhook** (NEVER `application_fee_amount` in `subscription_data`). Per NOTE_FOR_ARCHITECT.
 3. 🟠 **Telephony pricing is PLATFORM-level (Medacrii), not operator-adjustable** (it's swept to Medacrii).
    Store €10/€19/€9 + bundles in platform config, NOT the operator recommend/override tables.
-- Note: "AI Executive" (Premium) promises AI call-handling that is a LATER build; at launch the tier delivers
-  the geographic number + SIP/Zoiper line. Positioning only.
+- Note: the Premium "AI Executive" call-handling is **now specified** in
+  [SPEC_ai-voice-receptionist.md](SPEC_ai-voice-receptionist.md): launch = screen/route/FAQ on **T2 + T3**
+  (AI allowances 50 / 100 min), concierge = **T3 fast-follow**. AI overage = €0.45/min via €10 blocks.
+  Telephony pricing here remains platform-level (Medacrii); the receptionist add-on follows the same model.
 
 ## 13. Phase-2 launch scope (founder-confirmed 2026-06-24) — dialer decoupled
 For the **mid-July launch**, Phase 2 = **core provisioning + Stripe Connect sweep + tripwire overage ledger**,
