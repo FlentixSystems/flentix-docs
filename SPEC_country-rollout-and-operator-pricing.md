@@ -212,8 +212,12 @@ country can never leak live.
    entries) from `create-virtual-office-checkout`; remap any existing test subscriber/booking
    rows to `starter`/`growth`/`premium`.
 4. Seed Spain `tier_price_recommendations` with the confirmed launch numbers (all ex-VAT):
-   - **Monthly (no-commit):** Starter €29 / Growth €69 / Premium €119 → `recommended_monthly_net`.
-   - **Annual (per-month rate, billed yearly):** Starter €24 / Growth €59 / Premium €99.
+   - **Monthly:** Starter **€35** / Growth **€65** / Premium **€129** → `recommended_monthly_net`
+     (3500 / 6500 / 12900 cents). *(UPDATED 2026-06-29 per CONSTITUTION §4a, Grant-locked 2026-06-27 —
+     was €29/€69/€119; re-seeded in the live DB.)*
+   - **Annual = 11 × monthly (1 month free), stored as the full yearly charge:** Starter **€385** /
+     Growth **€715** / Premium **€1419** → `recommended_annual_net` (38500 / 71500 / 141900 cents).
+     *(was €24/€59/€99.)* The Medacrii platform fee (€5/€20/€60) is separate + fixed — see CONSTITUTION §4a.
      Store `recommended_annual_net` as the **full yearly charge** (e.g. €24 → 28800 cents),
      display as "€24/mo billed annually". Stripe charges the yearly total once.
    - **Do not** seed from the legacy 4 hardcoded amounts.
