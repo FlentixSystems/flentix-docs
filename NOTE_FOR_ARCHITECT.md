@@ -31,8 +31,13 @@ proposing or pasting any payment/tax changes.
 >   **UPDATE 2026-06-29 — fields + admin form BUILT (commit 7d239dbd):** `workspaces` now has
 >   `legal_name`, `tax_id`, `fiscal_address`, `fiscal_city`, `fiscal_postal_code`, `fiscal_province`,
 >   `fiscal_country` (default `'ES'`); operators set them in **Admin → Operations → Workspace Setup →
->   "Business / Fiscal Identity"**. **REMAINING (Build B):** thread the hub's identity into `buildInvoicePdf` /
->   `mintVoFactura` via `opts.seller` to actually populate the Factura. ⚠️ workspace-UPDATE RLS is global-admin
+>   "Business / Fiscal Identity"**. **Build B DONE 2026-06-29:** added `resolveSellerForWorkspace(sb, workspaceId)`
+>   (`_shared/vo-invoice.ts`) + wired into ALL 6 Factura/credit-note call sites (stripe-webhook bono + VO
+>   renewal, process-activation-job, send-invoice-email single + aggregated, issue-credit-note); the aggregated
+>   + credit-note PDF builders now accept `seller`. Blank fiscal fields → `DEFAULT_SELLER` (no regression). **The
+>   CODE blocker is cleared** — new Facturas carry the hub's legal identity once the operator FILLS IT IN via the
+>   admin form. Recommended follow-up: snapshot the resolved seller onto the issuing row so a Factura
+>   Rectificativa reproduces the ORIGINAL issuer if the hub later edits its details. ⚠️ workspace-UPDATE RLS is global-admin
 >   (`is_current_user_admin()`), not per-hub — tighten to workspace-scoped before onboarding multiple operator-admins.
 
 ---
