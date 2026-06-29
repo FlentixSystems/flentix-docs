@@ -28,6 +28,12 @@ proposing or pasting any payment/tax changes.
 >   PLATFORM entity** that invoices the *operators* (the application-fee /
 >   reverse-charge B2B invoices), NOT the customer-Factura seller. Blocker logged
 >   in GO_LIVE_CHECKLIST §B.
+>   **UPDATE 2026-06-29 — fields + admin form BUILT (commit 7d239dbd):** `workspaces` now has
+>   `legal_name`, `tax_id`, `fiscal_address`, `fiscal_city`, `fiscal_postal_code`, `fiscal_province`,
+>   `fiscal_country` (default `'ES'`); operators set them in **Admin → Operations → Workspace Setup →
+>   "Business / Fiscal Identity"**. **REMAINING (Build B):** thread the hub's identity into `buildInvoicePdf` /
+>   `mintVoFactura` via `opts.seller` to actually populate the Factura. ⚠️ workspace-UPDATE RLS is global-admin
+>   (`is_current_user_admin()`), not per-hub — tighten to workspace-scoped before onboarding multiple operator-admins.
 
 ---
 
