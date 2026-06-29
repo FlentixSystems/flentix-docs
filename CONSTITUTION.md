@@ -1,10 +1,28 @@
-# 📜 FLENTIX CONSTITUTION v2.1
+# 📜 FLENTIX CONSTITUTION v2.4
 
-**Version:** 2.3.0
-**Last Updated:** 2026-06-23
+**Version:** 2.4.0
+**Last Updated:** 2026-06-29
 **Status:** Active — Proof of Concept / Sprint Mode (pace set by Grant)
 **Core Ecosystem Role:** Upstream Master Blueprint (Flentix Systems)
 **Single source of truth.** Paste this as the first message in any new AI chat.
+
+> ### What changed in v2.4 (2026-06-29 — read this first)
+> - **Locked go-to-market pricing canonicalised (§4a, §7).** Retail price and Medacrii platform fee are
+>   now **separate, labelled fields** (never conflate): **T1 €35/€5, T2 €65/€20, T3 €129/€60** (ex-IVA).
+>   These supersede the provisional €2/€30/€50 *and* the older €29/€69/€119 still in
+>   `SPEC_country-rollout §4.4` + the seeded DB (both to be re-aligned). **Annual prices for the new
+>   monthlies are not yet set.**
+> - **Number type per tier (§7): T2 = national `51x`** (Zadarma-issued); **T3 = geographic DID where WE
+>   provide the registered address (domiciliation).** A T2 client with their OWN registered in-zone
+>   address can instead get a geographic number against that address.
+> - **AML / Ley 10/2010 constraint added (§7).** Providing a registered address professionally =
+>   **sujeto obligado** (Art 2.1.o) → operator-registration gate + full programme. **`AML_COMPLIANCE_BRIEF.md`
+>   is authoritative** until formal legal advice.
+> - **Build state:** per-hub **Factura fiscal identity = BUILT** (schema + admin form + invoice threading +
+>   issuer snapshot); the **AI voice receptionist = BUILT** (engine + client console, T2/T3 — see
+>   `SPEC_ai-voice-receptionist.md`).
+> - **§5 reframed to document-driven:** no single "architect" chat — `CONSTITUTION.md` + `README.md` are the
+>   source of truth every chat reads first; Gemini-architect / DeepSeek-legacy retired.
 
 > ### What changed in v2.3 (2026-06-23 — read this first)
 > - **The codebase is now FLENTIX-NATIVE — zero TC Hub legacy in code.** The
@@ -206,10 +224,21 @@ accountant in `ACCOUNTANT_BRIEF.md`. Load-bearing facts:
   computed to equal the fixed fee; renewals → `application_fee_amount` on the
   draft invoice via an `invoice.created` webhook (Connect events;
   `{ stripeAccount: event.account }`).
-- **Fee figures are PROVISIONAL** (€2/€30/€50 placeholders; Grant researching).
-- **Phone tier = single €119 charge** on the connected account, like other tiers,
-  through normal KYC. The old two-stage (€104 + separate €15 telecom) is
-  **removed** — pre-Connect cruft.
+- **LOCKED go-to-market figures (Grant, 2026-06-27). RETAIL PRICE and MEDACRII FEE are two distinct
+  fields — never conflate them:**
+
+  | Tier | **Retail** (ex-IVA; customer pays this +21% IVA) | **Medacrii fee** (ex-IVA; the Stripe application fee) | Operator keeps (ex-IVA) |
+  |---|---|---|---|
+  | T1 `starter` | **€35** | **€5** | €30 |
+  | T2 `growth` | **€65** | **€20** | €45 |
+  | T3 `premium` | **€129** | **€60** | €69 |
+
+  Retail is **operator-set** (recommend-and-override above a floor); the **fee is a fixed platform
+  constant** (Medacrii-set). These supersede the provisional €2/€30/€50 *and* the €29/€69/€119 still in
+  `SPEC_country-rollout §4.4` + the seeded `tier_price_recommendations` (both to be re-aligned to match).
+  **Annual prices for these new monthlies are not yet set** (the strategy's €24/€59/€99 pair with the old
+  €29/€69/€119). The single phone charge is folded into T2/T3 — the old two-stage (€104 + separate €15
+  telecom) is **removed** (pre-Connect cruft).
 - **Reverse charge** on Medacrii's fee is handled by **Medacrii issuing its own
   B2B invoices** to operators. **Stripe does NOT do this automatically.**
 - **Usage pass-through (future):** metered, billed at 100% cost, no margin.
@@ -219,23 +248,28 @@ accountant in `ACCOUNTANT_BRIEF.md`. Load-bearing facts:
 
 ---
 
-## 5. MULTI-AI WORKFLOW (current)
+## 5. WORKFLOW & SOURCE OF TRUTH (document-driven)
 
-| Role | Tool | Responsibilities |
+There is no single persistent "architect" chat. **`CONSTITUTION.md` + `README.md` (and the specs they
+index in `flentix-docs`) ARE the architecture and the source of truth** — they drive every new chat, for
+every task.
+
+| Role | Who | Responsibilities |
 |---|---|---|
-| **Owner / Gatekeeper** | Grant | Holds this Constitution; sets direction & pace |
-| **Architect** | **Gemini** | System design, DB, RLS, API contracts, blueprints |
-| **Engineering / Payments / Tax / Audit** | **Claude** | Stripe/tax correctness, code & blueprint audits, repo work, edge functions |
-| **Assembly** | **Lovable.dev** | Building, deployment |
-| **Chief Architect (legacy)** | DeepSeek | Prior architect/Constitution author — *current role to confirm* |
+| **Owner / Gatekeeper** | Grant | Holds + approves the Constitution; sets direction & pace |
+| **Source of truth ("the architect")** | **`CONSTITUTION.md` + `README.md`** (+ indexed specs) | The reference every chat reads first and works within |
+| **Engineering / design / payments / tax / audit** | **Claude** (fresh, task-specific chats) | Per task: pull latest → read the docs → design, build & audit within them → update the docs (announced) |
+| **Assembly** | **Lovable.dev** | Building & deployment |
 
-### Constitution-driven workflow
-- This Constitution is the **single source of truth**.
-- Every new AI chat starts with it pasted as the first message.
-- **Grant** is the Constitution Gatekeeper.
+### Document-driven workflow (every new chat)
+1. **Pull** the latest `flentix-docs` from GitHub.
+2. **Read** `CONSTITUTION.md` + `README.md` first — they govern the work.
+3. Do the task **within** them; where a doc is wrong/outdated, fix it.
+4. **Announce** any `README` / `CONSTITUTION` change to Grant; bump the Constitution version + changelog.
+5. **Grant is Gatekeeper** — constitution changes need his approval.
 
-> **Note:** the old v2.0 rule "Claude builds atomic components only — no backend
-> logic" is **retired**. Claude now owns payments/tax/engineering audit.
+> Retired: the Gemini-architect and DeepSeek-legacy roles — those chats are gone; architecture now lives in
+> the documents, not a persona.
 
 ---
 
@@ -255,20 +289,38 @@ className="bg-[var(--tenant-primary, #10B981)] rounded-[var(--tenant-radius, 4px
 
 ## 7. VIRTUAL OFFICE — 3-TIER OFFERING
 
-**Tier 1 — Business Footprint (Starter):** legal presence + basic mail handling;
-1 Flexi-Desk day pass/month. Target: founders needing a legal "pin on the map".
+> **Pricing (ex-IVA) — retail / Medacrii fee** (see §4a): T1 **€35 / €5** · T2 **€65 / €20** ·
+> T3 **€129 / €60**. Retail operator-set (above a floor); fee fixed.
 
-**Tier 2 — Workspace Hybrid (Growth):** priority mail (30-day + forwarding);
-2 day passes + 2 meeting-room hours/month; member rates. Target: local remote
-professionals.
+**Tier 1 — Business Footprint (Starter) — €35:** legal presence + basic mail handling;
+1 Flexi-Desk day pass/month. **No phone number.** Target: founders needing a legal "pin on the map".
 
-**Tier 3 — AI Executive Suite (Premium):** everything in Tier 2 + Smart PBX +
-AI receptionist; dedicated Spanish DID; smart call routing; voicemail-to-email;
-10 extensions; 4 day passes + 4 meeting-room hours/month. Target: established
-companies wanting an elite image.
+**Tier 2 — Workspace Hybrid (Growth) — €65:** everything in T1 + priority mail (30-day + forwarding);
+2 day passes + 2 meeting-room hours/month; member rates; the **launch AI receptionist** (screen / route /
+FAQ); a **national `51x` number** (Zadarma-issued) + 100 included carrier minutes. **Number nuance:** if
+the client supplies their OWN registered in-zone address (autonomous / business already domiciled in a
+postcode where we offer geographic numbers), T2 can instead provision a **geographic** number against the
+client's own address — no domiciliation by us. Target: local remote professionals.
 
-**KYC (all tiers, critical for Tier 3):** checkout includes ID/passport + address
-proof upload for Spanish telephony compliance.
+**Tier 3 — AI Executive Suite (Premium) — €129:** everything in T2 + a **geographic Spanish DID where WE
+provide the registered address for compliance (domiciliation)**; smart call routing; voicemail-to-email;
+10 extensions; 300 included carrier minutes; 4 day passes + 4 meeting-room hours/month; AI concierge
+(fast-follow). Target: established companies wanting an elite image.
+
+> **⚠️ AML CONSTRAINT — Ley 10/2010 (governs the premium / domiciliation tier).** Providing a registered /
+> commercial / postal / administrative address to a third party on a professional basis makes the provider
+> a **"sujeto obligado"** (Art 2.1.o) — carrying a **mandatory operator-registration gate** (Registro de
+> Prestadores de Servicios a Sociedades) plus the full Ley 10/2010 programme: client KYC, beneficial
+> ownership, PEP/sanctions screening, 10-year retention, a SEPBLAC representative, and **a genuine, logged
+> operator approval on each client** (never auto-approved — substance over form). **`AML_COMPLIANCE_BRIEF.md`
+> is the authoritative source** until formal Spanish legal advice supersedes it. The gate is triggered by
+> **us providing the registered address (T3 domiciliation)**; a T2 client using their own address does not
+> trigger it. T1/T2 status (whether the mail/correspondence address we provide is itself in-scope) is **to be
+> confirmed by the lawyer**.
+
+**KYC (all tiers, critical for Tier 3):** dynamic per-country document upload from
+`countries_config.required_kyc_docs` (ID/passport + address proof for Spanish telephony compliance).
+Per-hub fiscal identity (issuer legal name / NIF / registered address) prints on each hub's Facturas.
 
 > Legacy `mail` Stripe price stays live for existing subscribers; the funnel
 > presents 3 tiers (Starter/Growth/Premium).
@@ -323,6 +375,16 @@ signatures, swap implementation for Twilio/FreeSWITCH later.
 - **New chat onboarding:** always paste this Constitution first.
 
 ### Changelog
+- **v2.4.0 (2026-06-29):** Locked go-to-market pricing canonicalised — **retail (€35/€65/€129) and
+  Medacrii fee (€5/€20/€60) separated as distinct labelled fields** (§4a, §7); supersede the provisional
+  €2/€30/€50 + the €29/€69/€119 still in `SPEC_country-rollout §4.4` + the seeded DB (to be re-aligned;
+  annual prices for the new monthlies still TBD). **T2 = national `51x` / T3 = geographic DID with our
+  registered-address domiciliation** (§7), incl. the "T2 client's own in-zone address → geographic number"
+  nuance. **AML / Ley 10/2010 sujeto-obligado + operator-registration gate** added as a constraint (§7);
+  `AML_COMPLIANCE_BRIEF.md` authoritative. Build state: per-hub **Factura fiscal identity built** (schema +
+  admin form + invoice threading + issuer snapshot); **AI voice receptionist built** (engine + client
+  console, T2/T3). **§5 reframed to document-driven** (CONSTITUTION + README are the source of truth;
+  Gemini-architect / DeepSeek-legacy retired).
 - **v2.3.0 (2026-06-23):** **Flentix-native milestone.** De-TC purge — zero TC
   Hub legacy in code; default workspace `0fc40c16` renamed → "Flentix Systems"
   (slug `flentix`); money path `brand:'FLENTIX'` / `fx_*` keys / `FLX-` codes;
