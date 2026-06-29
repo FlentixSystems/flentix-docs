@@ -36,8 +36,13 @@ proposing or pasting any payment/tax changes.
 >   renewal, process-activation-job, send-invoice-email single + aggregated, issue-credit-note); the aggregated
 >   + credit-note PDF builders now accept `seller`. Blank fiscal fields → `DEFAULT_SELLER` (no regression). **The
 >   CODE blocker is cleared** — new Facturas carry the hub's legal identity once the operator FILLS IT IN via the
->   admin form. Recommended follow-up: snapshot the resolved seller onto the issuing row so a Factura
->   Rectificativa reproduces the ORIGINAL issuer if the hub later edits its details. ⚠️ workspace-UPDATE RLS is global-admin
+>   admin form. **Issuer snapshot DONE 2026-06-29:** `seller_snapshot jsonb` added to `bookings` + `bono_passes`
+>   (VO uses `virtual_office_subscribers.engine_metadata.seller_snapshot` via the existing `vo_patch_metadata`
+>   RPC). Pattern = **resolve once at first issue, then freeze**: invoice generation snapshots the resolved
+>   seller onto the issuing row; re-renders + the credit note (`issue-credit-note`) READ that frozen snapshot
+>   (fresh-resolve only as a legacy fallback). Proven immutable — changing the hub's NIF *after* issue does NOT
+>   alter the issued invoice's or its credit note's issuer. So a Factura Rectificativa always reproduces the
+>   original issuer. ⚠️ workspace-UPDATE RLS is global-admin
 >   (`is_current_user_admin()`), not per-hub — tighten to workspace-scoped before onboarding multiple operator-admins.
 
 ---
