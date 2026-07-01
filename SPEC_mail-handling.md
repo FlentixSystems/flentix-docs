@@ -50,8 +50,12 @@ so per-mailing avoids double-penalising and matches the batch model.)
 3. One charge per weekly bundle (+21% IVA on top, per the money rule).
 
 ## 6. Current state & gaps (as of the first T1 test, 2026-07-01)
-- ✅ The chosen mailroom plan **is captured** at checkout (`mailroom_plan: "deposit" | "payg"`
-  on the order) — wording lives in `src/pages/VirtualOfficeOnboarding.tsx` (Mailroom billing step).
+- ⚠️ The mailroom plan is **collected in the onboarding UI** (wording in
+  `src/pages/VirtualOfficeOnboarding.tsx`, Mailroom billing step) but the checkout **DROPS it** —
+  it is NOT in the order's `engine_metadata` (verified 2026-07-01: `mailroom_plan` absent), so the
+  operator has **no record of Deposit vs PAYG** on the order.
+- ⚠️ The **€10 deposit is NOT charged** — a T1 order totals **€42.35** (€35 + 21% IVA); no deposit
+  line is ever added. The whole mailroom-billing model is currently **UI-only**.
 - ✅ The **postage price list** exists in the admin `DispatchModal`.
 - ❌ **Checkout hardcodes** `forwarding: "none"` and `scan_to_email: false` → the admin row shows
   a misleading "Forwarding: No Forwarding / Scan to email: OFF" that ignores both the tier's scan
@@ -74,16 +78,28 @@ so per-mailing avoids double-penalising and matches the batch model.)
    on top of postage; €0 for Deposit members; then charge (NET + 21% IVA, Medacrii fee on NET).
 5. **Reconcile the Constitution** T1/T2 mail wording with this spec.
 
-## 8. Open questions / decisions for founder
-- **Postage basis:** per **bundle** (total weight) or per item? The batch model implies per
-  bundle by weight — please confirm.
-- **Deposit refund mechanics:** when/how is the €10 refunded (on account closure)? Held where?
-- **T2 / T3 forwarding inclusions:** tier copy says T2 "forwarding included twice monthly", T3
-  "forwarding weekly". Do these **include postage**, or just waive the admin fee? How do they sit
-  against the weekly batch?
-- **Scan-to-email limits:** unlimited on T1, or a monthly item cap?
-- **Postage VAT treatment:** postage may be VAT-exempt/pass-through vs the €5 admin fee (standard
-  21%) — confirm with the accountant.
+## 8. Decisions (resolved by founder 2026-07-01)
+- **Postage basis: PER BUNDLE** — the total weight of the weekly bundle, not per item. ✅
+- **VAT: charge IVA (21%) on EVERYTHING, always.** The ONLY exemption is **Correos** postage
+  (Spain's universal postal service is IVA-exempt). So the €5 handling fee, the subscription, and
+  **private-courier** postage all carry 21% IVA; **Correos postage is exempt.** Invoices must
+  handle the mixed case (an exempt postage line alongside 21% lines).
+- **T2 / T3 "included" forwarding = frequency AND postage included, always** (T2 twice-monthly,
+  T3 weekly). Those scheduled sends cost the customer nothing extra.
+- **The €5 is a HANDLING / AD-HOC fee, applied via a CHECKBOX at dispatch:**
+  - **Auto-ON for PAYG (T1)** — their per-mailing model (€5 on every bundle).
+  - **Admin-discretion, default OFF, for Deposit + T2/T3** — the operator ticks it for an
+    **ad-hoc / immediate / out-of-schedule** physical send a customer requests (they always keep
+    the free email scan; the €5 is the charge for jumping the weekly batch).
+  - Net: scheduled sends carry no handling fee for Deposit/T2/T3; ad-hoc immediate sends = €5.
+- **€10 deposit refund:** ⚠️ **FIRST confirm the €10 is actually COLLECTED** — the checkout records
+  `mailroom_plan: "deposit"` but does **not** appear to add a €10 charge (no deposit line item in
+  `create-virtual-office-checkout`), so collection is likely an un-wired gap. Once it *is*
+  collected: hold it as **refundable account credit**; on closure, apply to any final charges,
+  refund the remainder to the card via a **Stripe refund**, and issue a **credit note** (the
+  VAT/accounting record — admin already has `issue-credit-note`). Build a single admin
+  **"Refund deposit"** action = Stripe refund + auto credit note.
+- **Scan-to-email:** included T1+ (per-item cap TBD if ever needed).
 
 ## 9. Code references
 - Onboarding mailroom-plan selection + wording: `src/pages/VirtualOfficeOnboarding.tsx`
