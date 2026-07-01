@@ -80,10 +80,12 @@ so per-mailing avoids double-penalising and matches the batch model.)
 
 ## 8. Decisions (resolved by founder 2026-07-01)
 - **Postage basis: PER BUNDLE** — the total weight of the weekly bundle, not per item. ✅
-- **VAT: charge IVA (21%) on EVERYTHING, always.** The ONLY exemption is **Correos** postage
-  (Spain's universal postal service is IVA-exempt). So the €5 handling fee, the subscription, and
-  **private-courier** postage all carry 21% IVA; **Correos postage is exempt.** Invoices must
-  handle the mixed case (an exempt postage line alongside 21% lines).
+- **VAT: charge IVA (21%) on EVERYTHING the customer is billed — including the postage we pass
+  through. NO exempt lines on the customer invoice.** Nuance (input side only): **Correos** does
+  not charge US IVA on the postage (universal-service exemption), so there is no input IVA to
+  reclaim on that cost — BUT our OUTPUT (the postage + handling we bill the customer) is a VATable
+  service, so we add 21% on the full amount. (Private couriers charge us IVA as normal.) So every
+  line the customer sees — subscription, €5 handling, postage — carries 21% IVA.
 - **T2 / T3 "included" forwarding = frequency AND postage included, always** (T2 twice-monthly,
   T3 weekly). Those scheduled sends cost the customer nothing extra.
 - **The €5 is a HANDLING / AD-HOC fee, applied via a CHECKBOX at dispatch:**
@@ -107,3 +109,23 @@ so per-mailing avoids double-penalising and matches the batch model.)
   `scan_to_email: false` in the `create-virtual-office-checkout` invoke body.
 - Postage price list + dispatch UI: `src/components/admin/VirtualOfficePanel.tsx` → `DispatchModal`.
 - Mail inventory logging: same panel → `LogMailModal`.
+
+## 10. Build status (2026-07-01)
+**DONE + deployed** (commits `1591848` / `28bc1f8a` / `d9505ff5`):
+- ✅ `mailroom_plan` now **persisted** on the order (checkout metadata → `engine_metadata`).
+- ✅ **€10 refundable deposit collected** for Deposit customers (one-time on the first invoice via
+  `subscription_data.add_invoice_items`, **NO IVA** — outside VAT scope).
+- ✅ **Scan-to-email flagged ON** (included T1+).
+- ✅ Onboarding: the deposit/PAYG step **states the real costs**; tier cards carry mail-handling +
+  ad-hoc captions.
+- ✅ Admin: **mailroom plan shown** on the order row + detail modal (Deposit €10 / PAYG €5/mailing).
+- ✅ The €5 handling fee is now a **checkbox at dispatch** — auto-ON for PAYG, OFF for Deposit/T2-T3
+  (tick for an ad-hoc send); the emailed pre-dispatch invoice total matches the on-screen total.
+
+**REMAINING (follow-ups):**
+- ⬜ **Weekly batch dispatch** mechanism (bundle a customer's week of mail → one send). Dispatch is
+  currently ad-hoc per order.
+- ⬜ **"Refund deposit" admin action** (Stripe refund of the €10 + auto credit note) on closure.
+- ⬜ Forwarding-cadence wiring for T2/T3 (the `forwarding` field still displays generically).
+- ⬜ Reconcile the Constitution's T1/T2 mail wording with this spec.
+- ⬜ Accountant confirms: deposit-VAT (currently €10 no-IVA) + postage VAT.
