@@ -20,6 +20,7 @@ repos plus new finance/architecture notes.
 | [`SPEC_country-rollout-and-operator-pricing.md`](SPEC_country-rollout-and-operator-pricing.md) · [`PLAN_country-rollout-and-operator-pricing.md`](PLAN_country-rollout-and-operator-pricing.md) | Multi-country rollout + operator-set pricing spec/plan. | Architect / engineering |
 | [`SPEC_telecom-phase2-zadarma.md`](SPEC_telecom-phase2-zadarma.md) | Premium-tier Zadarma number provisioning, usage/overage billing, corporate multi-line/seat. | Architect / engineering |
 | [`SPEC_ai-voice-receptionist.md`](SPEC_ai-voice-receptionist.md) | AI voice receptionist (T2/T3 add-on): managed engine behind a swappable SIP boundary, dual-meter billing, locked go-to-market pricing. | Architect / engineering |
+| [`SPEC_mail-handling.md`](SPEC_mail-handling.md) | Mail scan/forwarding model: weekly-batch dispatch, Deposit (€10 refundable) vs PAYG (€5/mailing) mailroom plans, postage table, scan-to-email inclusion + current gaps to fix. | Architect / engineering |
 | [`AML_COMPLIANCE_BRIEF.md`](AML_COMPLIANCE_BRIEF.md) | **Authoritative** AML/domiciliation compliance architecture (Ley 10/2010 sujeto-obligado, operator-registration gate, "compliance department in a box" model, §8 build list). Governs the premium-tier compliance design until superseded by formal legal advice. | Everyone / architect / lawyer |
 | [`DOMICILIATION_AML_BRIEF.md`](DOMICILIATION_AML_BRIEF.md) | Earlier, narrower note on the domiciliation document gap — **superseded by `AML_COMPLIANCE_BRIEF.md`** (kept for history). | Engineering |
 
