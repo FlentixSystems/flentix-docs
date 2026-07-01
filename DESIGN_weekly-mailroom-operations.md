@@ -25,7 +25,7 @@ Two states, per Tier-1 subscriber (T2/T3 have scheduled forwarding + postage **i
 **PAYG member**
 - No balance. Each week the card is charged **postage + €5 handling + 21% IVA** directly.
 
-**VAT handling (accountant to confirm the *anticipo* mechanics):** balance tracked in **NET**;
+**VAT handling — CONFIRMED by founder 2026-07-01 (accounting checked):** balance tracked in **NET**;
 top-ups charged **NET + 21% IVA** (IVA declared at top-up); weekly draws take **NET** from the
 balance (IVA pre-collected at top-up); PAYG charges add 21% at point of service. **Refund of unused
 balance** on closure = a **Factura Rectificativa** reversing **base + IVA** (e.g. €5 unused → −€5.00
@@ -100,7 +100,8 @@ A single admin **"Refund balance"** action: Stripe-refund the unused NET balance
 5. **Refund action.**
 
 ## 10. Out of scope / open
-- Exact *anticipo* Factura reconciliation (balance IVA collected at top-up vs the mailing Factura)
-  — **accountant to confirm** before go-live.
+- *anticipo* VAT reconciliation — **CONFIRMED by founder** (top-up carries IVA as a prepayment;
+  unused-balance refund reverses base + IVA via Factura Rectificativa, reclaimed on Modelo 303).
+  Not an open item.
 - Auto-top-up (client-initiated only for now, per founder — no forced auto-charge).
 - Correos label/API integration (physical send stays manual).
