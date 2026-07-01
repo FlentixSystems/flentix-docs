@@ -51,15 +51,18 @@ balance** on closure = a **Factura Rectificativa** reversing **base + IVA** (e.g
    (free) — nothing is forwarded or charged unless the client asks.
 
 ## 4. Client portal (`/portal/mailroom`)
-- **Per-item disposition:** hold (default) / forward / scan-only.
-- **Balance display** + **top-up €10 / €20 / €30** (Stripe, +IVA).
+- **Per-item disposition:** hold (default) / forward / scan-only — **editable until Thursday 16:00
+  Europe/Madrid, then LOCKED for the cycle** (see §5). During the lock the action buttons are
+  disabled with a "mailbox locked" banner; the client can still view mail and top up.
+- **Balance display** + **top-up €10 / €20 / €30** (Stripe, +IVA) — top-up stays available even
+  during the lock (needed before the 9pm charge).
 - **Low-balance reminder** (and a pre-Thursday nudge: top up or the week's forwards go PAYG).
 
 ## 5. Weekly cycle (timing locked)
 | When | Action |
 |---|---|
-| **Thu, by 4pm** | Admin finalizes each client's **forward list** + charges (per-order, in the existing DispatchModal). Sends each client the pre-charge invoice → opens the query window. |
-| **Thu 4–8pm** | **Client query window** — reply to adjust before the charge. |
+| **Thu 16:00 (4pm)** | **HARD CUT-OFF.** The client mailbox **LOCKS** — no more scan / forward / scrap changes for this cycle. Admin finalizes each client's **forward list** + charges (per-order, in the existing DispatchModal) and sends the pre-charge **notification**. |
+| **Thu 4–8pm** | **Notification window — informational ONLY.** Clients are told what will be dispatched and the amount to be charged. **No alterations** (mailbox locked at 4pm); nothing is recalculated. |
 | **Thu ~9pm** | **Charge** (scheduled job): for each client with a finalized forward total, **draw from balance** (credit member) else **charge the card** (PAYG / balance-shortfall). Off-session, on the connected account, +IVA, Medacrii app fee. Official **Factura on success**. Deliberately clear of the 8:15am booking-charge cron. |
 | **Fri, before 10am** | The job **re-attempts declines** (like `charge-due-balances`); admin chases non-payers — **Retry / Send payment link / Mark paid offline / "payment failed" email**. |
 | **10am Fri** | For every client **paid** → mail **cleared for Correos**. Unpaid → mail **HELD + flagged** (red banner). |
