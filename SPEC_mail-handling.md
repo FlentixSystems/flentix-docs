@@ -94,13 +94,14 @@ so per-mailing avoids double-penalising and matches the batch model.)
     **ad-hoc / immediate / out-of-schedule** physical send a customer requests (they always keep
     the free email scan; the €5 is the charge for jumping the weekly batch).
   - Net: scheduled sends carry no handling fee for Deposit/T2/T3; ad-hoc immediate sends = €5.
-- **€10 deposit refund:** ⚠️ **FIRST confirm the €10 is actually COLLECTED** — the checkout records
-  `mailroom_plan: "deposit"` but does **not** appear to add a €10 charge (no deposit line item in
-  `create-virtual-office-checkout`), so collection is likely an un-wired gap. Once it *is*
-  collected: hold it as **refundable account credit**; on closure, apply to any final charges,
-  refund the remainder to the card via a **Stripe refund**, and issue a **credit note** (the
-  VAT/accounting record — admin already has `issue-credit-note`). Build a single admin
-  **"Refund deposit"** action = Stripe refund + auto credit note.
+- **€10 deposit = a PREPAID CREDIT FUND, charged WITH 21% IVA** (founder corrected 2026-07-01 — it
+  is NOT a no-IVA security deposit; a prepayment/*anticipo* for future mailing triggers IVA at
+  payment). Charge **€10 + €2.10 IVA = €12.10** gross, IVA declared to Hacienda on that invoice.
+  On refund of the unused balance, issue a **Factura Rectificativa (credit note)** reversing
+  **base + IVA** — e.g. €5 unused → **−€5.00 −€1.05 IVA = −€6.05** returned to the client — and
+  reclaim the €1.05 via **Modelo 303**. (`issue-credit-note` exists; the "Refund deposit" admin
+  action wires it + the Stripe refund.) ⚠️ The current Part-1 build charges the €10 with **NO IVA**
+  — to be corrected to +IVA once the fund model (§11) is locked.
 - **Scan-to-email:** included T1+ (per-item cap TBD if ever needed).
 
 ## 9. Code references
@@ -129,3 +130,53 @@ so per-mailing avoids double-penalising and matches the batch model.)
 - ⬜ Forwarding-cadence wiring for T2/T3 (the `forwarding` field still displays generically).
 - ⬜ Reconcile the Constitution's T1/T2 mail wording with this spec.
 - ⬜ Accountant confirms: deposit-VAT (currently €10 no-IVA) + postage VAT.
+
+## 11. OPEN MODEL DECISION (2026-07-01) — drawn-down FUND vs flat deposit
+The founder's "credit fund for future mailing costs" + "€5 balance remaining" framing implies the
+€10 is a **prepaid mail-credit BALANCE that postage/handling DRAW DOWN** (€5 used → €5 left), topped
+up when low, unused refunded via credit note — matching the "always running in credit" philosophy.
+That differs from the **current build** (flat €10 deposit; postage billed SEPARATELY at each
+dispatch). The two also bill VAT differently:
+- **FUND model:** IVA charged **once** on each top-up; each dispatch **draws NET** from the
+  pre-taxed balance (no second IVA); refund unused base + IVA via Factura Rectificativa.
+- **FLAT model:** deposit taxed once; **each dispatch** taxed separately (postage + €5 + 21% IVA).
+**Decision needed before finalising the deposit build.** If FUND: build a per-subscriber
+mail-credit ledger (analogous to the telecom `vo_account_minutes`) + drawdown at dispatch +
+top-up + the Factura-Rectificativa refund. If FLAT: just add 21% IVA to the one-time €10 line and
+the "Refund deposit" action reverses €10 + IVA.
+**DECIDED 2026-07-01: FLAT deposit.** (But see §12 — the founder also wants a client top-up
+balance, which reintroduces a drawdown element; resolve there.)
+
+## 12. Weekly mailroom OPERATIONS flow (founder intent 2026-07-01) + current state
+**Intended weekly cycle:**
+1. **Daily:** admin logs incoming letters/parcels per client.
+2. **End of each day:** auto-email to any client who received mail that day.
+3. **Auto top-up** of the client's prepaid mail credit when low (trigger TBD).
+4. **Thursday:** admin sets that week's final mail charges per client (batch); then all invoices sent.
+5. **By 10:00 Friday:** payment taken. Client has an overnight window (Thu → 10:00 Fri) to QUERY.
+6. **After 10:00 Friday:** all charges paid → admin clear to send to Correos.
+7. **Payment gate:** mail is NOT sent unless payment is received. Payment DECLINE (any tier) → a
+   FLAG so that client's mail is held.
+Plus: **client-facing top-up** in `/portal/mailroom` (€10 / €20 / €30 options — client picks by usage).
+
+**Current state (verified 2026-07-01) — mostly NOT built:**
+- ✅ Daily mail logging exists (`LogMailModal` → `virtual_office_mail_items`).
+- ⚠️ EOD digest exists (`send-vo-mail-digest`, bilingual, fires 19:00 Europe/Madrid) but is **NOT
+  scheduled** (no pg_cron job) → never runs. Quick fix = add the hourly cron.
+- ❌ **No payment is actually taken.** `send-predispatch-invoice` only EMAILS a "card debited at
+  courier handover in ~24h" notice; the dispatch `confirm` step just records the dispatch + resets
+  counters — it does NOT charge the card. The email promises a debit that nothing performs.
+- ❌ Dispatch is **per-order + manual** (open each client's DispatchModal, set qty, optionally email
+  the notice, confirm) — NO Thursday batch, no "send all invoices together."
+- ❌ No mail auto-top-up (telecom only), no payment-before-send gate, no declined-payment flag, no
+  structured query window, no client-facing top-up.
+
+**Tension to resolve:** FLAT deposit (postage billed separately) vs a client **top-up balance**
+(€10/20/30) that weekly charges draw from — a top-up balance IS a drawdown model. Decide: does the
+Friday mail charge (a) draw from a prepaid top-up BALANCE (card charged / auto-top-up when low), or
+(b) charge the card directly each Friday (top-ups just a convenience prepay)?
+
+**→ This is its own focused build ("Weekly Mailroom Operations").** Sub-builds: schedule the EOD
+digest; a mail-charge PAYMENT mechanism (Stripe off-session on the connected account, IVA, Medacrii
+fee) with the Friday cutoff + query window; the payment-required-to-send gate + declined flag; the
+weekly batch charge-set UI; the portal top-up (+ a mail-credit ledger if the balance model wins).
