@@ -16,6 +16,7 @@ repos plus new finance/architecture notes.
 | [`BRAND_GUIDELINES.md`](BRAND_GUIDELINES.md) | Full brand bible (Emerald/charcoal/geometric, logo, type, voice). | Design / marketing |
 | [`NOTE_FOR_ARCHITECT.md`](NOTE_FOR_ARCHITECT.md) | Billing/fee/tax model, Stripe facts, and the agreed fixed-fee implementation. | Architect (Gemini) / engineering |
 | [`ACCOUNTANT_BRIEF.md`](ACCOUNTANT_BRIEF.md) | VAT / reverse-charge brief and questions to confirm. | Accountant |
+| [`ADVISORY_REGISTER.md`](ADVISORY_REGISTER.md) | **Single source of truth** — living register of every open item awaiting lawyer / accountant / fiscal sign-off (VeriFactu, invoice numbering, AML, IVA, GDPR…). | Everyone / advisors |
 | [`GO_LIVE_CHECKLIST.md`](GO_LIVE_CHECKLIST.md) | Living go-live checklist (Stripe Connect, system/data, per-hub fiscal identity blocker, brand). | Engineering / Grant |
 | [`SPEC_country-rollout-and-operator-pricing.md`](SPEC_country-rollout-and-operator-pricing.md) · [`PLAN_country-rollout-and-operator-pricing.md`](PLAN_country-rollout-and-operator-pricing.md) | Multi-country rollout + operator-set pricing spec/plan. | Architect / engineering |
 | [`SPEC_telecom-phase2-zadarma.md`](SPEC_telecom-phase2-zadarma.md) | Premium-tier Zadarma number provisioning, usage/overage billing, corporate multi-line/seat. | Architect / engineering |
